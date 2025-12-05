@@ -79,3 +79,22 @@ func (ct *ContentTypes) MarshalXml() (string, error) {
 
 	return xmlString, nil
 }
+
+// NewContentTypes creates a new ContentTypes with default values
+func NewContentTypes() *ContentTypes {
+	return &ContentTypes{
+		Xmlns: "http://schemas.openxmlformats.org/package/2006/content-types",
+		Defaults: []ContentType{
+			{Extension: "rels", ContentType: "application/vnd.openxmlformats-package.relationships+xml"},
+			{Extension: "xml", ContentType: "application/xml"},
+		},
+		Overrides: []Override{
+			{PartName: "/word/document.xml", ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"},
+			{PartName: "/word/styles.xml", ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"},
+			{PartName: "/word/settings.xml", ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"},
+			{PartName: "/word/fontTable.xml", ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"},
+			{PartName: "/docProps/core.xml", ContentType: "application/vnd.openxmlformats-package.core-properties+xml"},
+			{PartName: "/docProps/app.xml", ContentType: "application/vnd.openxmlformats-officedocument.extended-properties+xml"},
+		},
+	}
+}

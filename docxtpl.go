@@ -25,6 +25,7 @@ type DocxTmpl struct {
 	contentTypes     *contenttypes.ContentTypes
 	processableFiles []headerfooter.DocxFile // headers, footers, footnotes, endnotes
 	hyperlinkReg     *hyperlinks.HyperlinkRegistry
+	properties       *DocumentProperties // document metadata (stored in memory, serialized on save)
 }
 
 // Parse the document from a reader and store it in memory.
@@ -61,7 +62,7 @@ func Parse(reader io.ReaderAt, size int64) (*DocxTmpl, error) {
 
 	hyperlinkReg := hyperlinks.NewHyperlinkRegistry()
 
-	docTmpl := &DocxTmpl{doc, funcMap, contentTypes, processableFiles, hyperlinkReg}
+	docTmpl := &DocxTmpl{doc, funcMap, contentTypes, processableFiles, hyperlinkReg, nil}
 
 	// Override the link function to use our hyperlink registry
 	docTmpl.funcMap["link"] = docTmpl.createLink

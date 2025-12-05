@@ -21,12 +21,25 @@ var DefaultFuncMap = template.FuncMap{
 	"title": title,
 
 	// Rich text formatting functions
-	"bold":          bold,
-	"italic":        italic,
-	"underline":     underline,
-	"strikethrough": strikethrough,
-	"color":         color,
-	"highlight":     highlight,
+	"bold":            bold,
+	"italic":          italic,
+	"underline":       underline,
+	"strikethrough":   strikethrough,
+	"doubleStrike":    doubleStrike,
+	"color":           color,
+	"highlight":       highlight,
+	"fontSize":        fontSize,
+	"fontFamily":      fontFamily,
+	"font":            font,
+	"subscript":       subscript,
+	"superscript":     superscript,
+	"smallCaps":       smallCaps,
+	"allCaps":         allCaps,
+	"shadow":          shadow,
+	"outline":         outline,
+	"emboss":          emboss,
+	"imprint":         imprint,
+	"bgColor":         bgColor,
 
 	// Hyperlink function
 	"link": link,
@@ -133,10 +146,90 @@ func strikethrough(text string) string {
 	return `</w:t></w:r><w:r><w:rPr><w:strike/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
 }
 
+// doubleStrike returns text wrapped in double strikethrough formatting.
+// Usage: {{doubleStrike .Text}}
+func doubleStrike(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:dstrike/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
 // color returns text with the specified color (hex code without #).
 // Usage: {{color "FF0000" .Text}} for red text
 func color(hexColor string, text string) string {
 	return fmt.Sprintf(`</w:t></w:r><w:r><w:rPr><w:color w:val="%s"/></w:rPr><w:t>%s</w:t></w:r><w:r><w:t>`, hexColor, text)
+}
+
+// fontSize returns text with the specified font size.
+// Size is in half-points (e.g., 24 = 12pt, 28 = 14pt).
+// Usage: {{fontSize 28 .Text}} for 14pt text
+func fontSize(halfPoints int, text string) string {
+	return fmt.Sprintf(`</w:t></w:r><w:r><w:rPr><w:sz w:val="%d"/><w:szCs w:val="%d"/></w:rPr><w:t>%s</w:t></w:r><w:r><w:t>`, halfPoints, halfPoints, text)
+}
+
+// fontFamily returns text with the specified font family.
+// Usage: {{fontFamily "Arial" .Text}}
+func fontFamily(fontName string, text string) string {
+	return fmt.Sprintf(`</w:t></w:r><w:r><w:rPr><w:rFonts w:ascii="%s" w:hAnsi="%s"/></w:rPr><w:t>%s</w:t></w:r><w:r><w:t>`, fontName, fontName, text)
+}
+
+// font returns text with combined font settings.
+// Usage: {{font "Arial" 24 "FF0000" .Text}} for Arial, 12pt, red
+func font(fontName string, halfPoints int, hexColor string, text string) string {
+	return fmt.Sprintf(`</w:t></w:r><w:r><w:rPr><w:rFonts w:ascii="%s" w:hAnsi="%s"/><w:sz w:val="%d"/><w:szCs w:val="%d"/><w:color w:val="%s"/></w:rPr><w:t>%s</w:t></w:r><w:r><w:t>`,
+		fontName, fontName, halfPoints, halfPoints, hexColor, text)
+}
+
+// subscript returns text formatted as subscript.
+// Usage: {{subscript .Text}}
+func subscript(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:vertAlign w:val="subscript"/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// superscript returns text formatted as superscript.
+// Usage: {{superscript .Text}}
+func superscript(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// smallCaps returns text in small capitals.
+// Usage: {{smallCaps .Text}}
+func smallCaps(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:smallCaps/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// allCaps returns text displayed in all capitals.
+// Usage: {{allCaps .Text}}
+func allCaps(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:caps/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// shadow returns text with shadow effect.
+// Usage: {{shadow .Text}}
+func shadow(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:shadow/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// outline returns text with outline effect.
+// Usage: {{outline .Text}}
+func outline(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:outline/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// emboss returns text with emboss effect.
+// Usage: {{emboss .Text}}
+func emboss(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:emboss/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// imprint returns text with imprint (engrave) effect.
+// Usage: {{imprint .Text}}
+func imprint(text string) string {
+	return `</w:t></w:r><w:r><w:rPr><w:imprint/></w:rPr><w:t>` + text + `</w:t></w:r><w:r><w:t>`
+}
+
+// bgColor returns text with a background/shading color.
+// Usage: {{bgColor "FFFF00" .Text}} for yellow background
+func bgColor(hexColor string, text string) string {
+	return fmt.Sprintf(`</w:t></w:r><w:r><w:rPr><w:shd w:val="clear" w:color="auto" w:fill="%s"/></w:rPr><w:t>%s</w:t></w:r><w:r><w:t>`, hexColor, text)
 }
 
 // highlight returns text with the specified highlight color.

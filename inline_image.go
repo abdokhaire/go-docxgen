@@ -255,8 +255,8 @@ func (i *InlineImage) getContentTypes() ([]*contenttypes.ContentType, error) {
 }
 
 func (d *DocxTmpl) addInlineImage(i *InlineImage) (xmlString string, err error) {
-	// Add the image to the document
-	paragraph := d.AddParagraph()
+	// Add the image to the document (use underlying docx method)
+	paragraph := d.Docx.AddParagraph()
 	run, err := paragraph.AddInlineDrawing(*i.data)
 	if err != nil {
 		return "", err

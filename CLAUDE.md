@@ -47,6 +47,71 @@ Simple string replacement fails here. This library solves this by **merging frag
 - `GetWatermarks()` - Returns all watermark texts from document headers
 - `ReplaceWatermark(old, new)` - Replace watermark text before rendering
 
+### Document Builder API (`builder.go`)
+Create documents programmatically without templates:
+- `New()` / `NewWithOptions(PageSize)` - Create new empty document (A4, A3, Letter, Legal)
+- `AddParagraph(text)` - Add paragraph, returns `*Paragraph` for formatting
+- `AddEmptyParagraph()` - Add empty paragraph for spacing
+- `AddHeading(text, level)` - Add heading (level 0-9)
+- `AddPageBreak()` - Insert page break
+- `AddTable(rows, cols)` - Create table, returns `*Table`
+- `AddTableWithWidths(rows, colWidths)` - Table with custom column widths (twips)
+- `AddTableWithBorders(rows, cols, colors)` - Table with custom border colors
+
+### Paragraph Formatting (`paragraph.go`)
+Fluent API for paragraph styling:
+- `Bold()`, `Italic()`, `Underline()`, `Strike()` - Text formatting
+- `Color(hex)`, `Highlight(color)`, `Background(hex)` - Colors
+- `Size(halfPoints)`, `SizePoints(points)`, `Font(name)` - Typography
+- `Center()`, `Left()`, `Right()`, `Justified()` - Alignment
+- `Justify(Justification)` - Custom alignment
+- `Style(styleID)` - Apply paragraph style (Heading1, ListBullet, etc.)
+- `Bullet()`, `Numbered()` - List formatting
+- `AddText(text)` - Add more text, returns `*Run`
+- **Spacing**: `SpacingBefore(pts)`, `LineSpacing(twips)`, `LineSpacingSingle()`, `LineSpacingOneAndHalf()`, `LineSpacingDouble()`
+- **Indentation**: `IndentLeft(inches)`, `IndentRight(inches)`, `IndentFirstLine(inches)`, `IndentHanging(inches)`, `Indent(IndentOptions)`
+- **Tab Stops**: `AddTabStop(pos, align, leader)`, `AddTabStops([]TabStop)`, `ClearTabStops()`
+- **Hyperlinks**: `AddLink(text, url)` - returns `*Hyperlink`
+- **Images**: `AddAnchorImage(data)`, `AddAnchorImageFromFile(path)`, `AddInlineImage(data)`, `AddInlineImageFromFile(path)`
+- **Shapes**: `AddAnchorShape(ShapeOptions)`, `AddInlineShape(ShapeOptions)` - rectangles, ellipses, arrows, stars, etc.
+
+### Run Formatting (`run.go`)
+Format individual text runs within paragraphs:
+- `Bold()`, `Italic()`, `Underline(style)`, `Strike()`, `DoubleStrike()` - Basic formatting
+- `Color(hex)`, `Highlight(color)`, `Background(hex)` - Colors
+- `Size(halfPoints)`, `SizePoints(points)`, `Font(name)` - Typography
+- `Shade(pattern, color, fill)` - Background shading
+- `Superscript()`, `Subscript()` - Vertical alignment
+- `CharacterSpacing(twips)`, `Expand(pts)`, `Condense(pts)` - Character spacing
+- `Kern(halfPoints)` - Kerning threshold
+- `Then()` - Return to parent paragraph for continued building
+
+### Table Builder (`table.go`)
+Programmatic table creation and formatting:
+- `Cell(row, col)` - Get cell at position, returns `*TableCell`
+- `SetCell(row, col, text)` - Set cell text, returns `*TableCell`
+- `Row(index)` - Get row, returns `*TableRow`
+- `Rows()`, `Cols()` - Get dimensions
+- `Justify(alignment)`, `Center()` - Table alignment
+- `SetBorderColors(TableBorderColors)` - Apply border colors to all cells
+- **TableCell**:
+  - Content: `SetText()`, `AddParagraph()`
+  - Formatting: `Bold()`, `Center()`, `Background(hex)`, `Shade()`
+  - Borders: `Borders(color, width)`, `NoBorders()`
+  - Width: `Width(twips)`, `WidthInches(in)`, `WidthCm(cm)`, `WidthPercent(pct)`
+  - Vertical Align: `VAlign(align)`, `VAlignTop()`, `VAlignCenter()`, `VAlignBottom()`
+  - Merging: `MergeHorizontal(count)`, `MergeVerticalStart()`, `MergeVerticalContinue()`
+- **TableRow**: `Cell(col)`, `SetCell()`, `Justify()`
+
+### Document Properties (`properties.go`)
+Get and set document metadata:
+- `GetProperties()` - Returns `*DocumentProperties`
+- `SetProperties(props)` - Update all properties
+- `SetTitle(title)`, `SetAuthor(author)`, `SetSubject(subject)` - Convenience setters
+- `SetKeywords(keywords)`, `SetDescription(desc)`, `SetCategory(cat)`
+- `SetContentStatus(status)` - e.g., "Draft", "Final"
+- **DocumentProperties**: Title, Subject, Creator, Keywords, Description, LastModifiedBy, Revision, Created, Modified, Category, ContentStatus
+
 ### Rendering Pipeline
 1. **Tag Merging** (`internal/tags/tag_merging.go`): Scans paragraphs and tables for incomplete tags (unmatched `{{` or `}}`), accumulates text across runs until complete, then writes merged text back. Supports whitespace-trimming syntax (`{{- ... -}}`)
 2. **Data Processing** (`internal/templatedata/`): Converts structs to maps, handles pointers, nested structs, slices of any type (`[]string`, `[]int`, `[]*Struct`), maps with various key types, XML-escapes string values, detects image file paths
@@ -85,9 +150,22 @@ The library supports all common Go data types in templates:
 | `italic` | `{{italic .Name}}` | Italic formatting |
 | `underline` | `{{underline .Name}}` | Underline formatting |
 | `strikethrough` | `{{strikethrough .Name}}` | Strikethrough formatting |
+| `doubleStrike` | `{{doubleStrike .Name}}` | Double strikethrough |
 | `color` | `{{color "FF0000" .Name}}` | Colored text (hex) |
 | `highlight` | `{{highlight "yellow" .Name}}` | Highlighted text |
-| `link` | `{{link "https://..." "Click"}}` | Hyperlink (basic) |
+| `bgColor` | `{{bgColor "FFFF00" .Name}}` | Background color |
+| `fontSize` | `{{fontSize 28 .Name}}` | Font size (half-points) |
+| `fontFamily` | `{{fontFamily "Arial" .Name}}` | Font family |
+| `font` | `{{font "Arial" 24 "FF0000" .Name}}` | Combined font settings |
+| `subscript` | `{{subscript .Name}}` | Subscript text |
+| `superscript` | `{{superscript .Name}}` | Superscript text |
+| `smallCaps` | `{{smallCaps .Name}}` | Small capitals |
+| `allCaps` | `{{allCaps .Name}}` | All capitals |
+| `shadow` | `{{shadow .Name}}` | Shadow effect |
+| `outline` | `{{outline .Name}}` | Outline effect |
+| `emboss` | `{{emboss .Name}}` | Emboss effect |
+| `imprint` | `{{imprint .Name}}` | Imprint/engrave effect |
+| `link` | `{{link "https://..." "Click"}}` | Hyperlink |
 | `br` | `{{br}}` | Line break |
 | `tab` | `{{tab}}` | Tab character |
 

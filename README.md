@@ -8,11 +8,13 @@ A Go library for generating DOCX documents from templates using Go's `text/templ
 ## Features
 
 - **Go Template Syntax** - Use familiar `{{.Field}}`, `{{range}}`, `{{if}}` syntax directly in Word documents
+- **Programmatic Document Creation** - Build documents from scratch with fluent API
 - **Handles Fragmented Tags** - Automatically merges tags split across XML runs by Word's editing
 - **Inline Images** - Insert images dynamically with automatic sizing and DPI detection
-- **60+ Built-in Functions** - Text formatting, math, dates, collections, and more
+- **80+ Built-in Functions** - Text formatting, math, dates, collections, and more
 - **Custom Functions** - Register your own template functions
 - **Full Document Support** - Headers, footers, footnotes, endnotes, and document properties
+- **Document Properties** - Get/set title, author, subject, keywords, and more
 - **Watermarks** - Extract and replace watermark text (supports template syntax)
 - **Flexible Data Types** - Structs, maps, slices, pointers, and nested structures
 
@@ -56,6 +58,97 @@ func main() {
 }
 ```
 
+## Programmatic Document Creation
+
+Create documents without templates using the builder API:
+
+```go
+package main
+
+import docxtpl "github.com/abdokhaire/go-docxgen"
+
+func main() {
+    // Create a new document
+    doc := docxtpl.New()
+
+    // Set document properties
+    doc.SetTitle("My Report")
+    doc.SetAuthor("Go Developer")
+
+    // Add heading and paragraphs
+    doc.AddHeading("Introduction", 1)
+    doc.AddParagraph("This document was created programmatically.")
+
+    // Add formatted text
+    para := doc.AddParagraph("This is ")
+    para.AddText("bold").Bold()
+    para.AddText(" and this is ").Then().AddText("italic").Italic()
+
+    // Add a table
+    doc.AddHeading("Data Table", 2)
+    table := doc.AddTable(3, 3)
+
+    // Header row with styling
+    table.SetCell(0, 0, "Name").Bold().Background("CCCCCC")
+    table.SetCell(0, 1, "Age").Bold().Background("CCCCCC")
+    table.SetCell(0, 2, "City").Bold().Background("CCCCCC")
+
+    // Data rows
+    table.SetCell(1, 0, "Alice")
+    table.SetCell(1, 1, "30")
+    table.SetCell(1, 2, "New York")
+
+    doc.SaveToFile("generated.docx")
+}
+```
+
+### Paragraph Formatting
+
+```go
+doc.AddParagraph("Centered text").Center()
+doc.AddParagraph("Right aligned").Right()
+doc.AddParagraph("Red bold text").Bold().Color("FF0000")
+doc.AddParagraph("Large text").SizePoints(16)
+doc.AddParagraph("Custom font").Font("Arial")
+doc.AddParagraph("Highlighted").Highlight("yellow")
+doc.AddParagraph("With background").Background("FFFF00")
+```
+
+### Table Builder
+
+```go
+// Create table with custom column widths (in twips: 1 inch = 1440 twips)
+table := doc.AddTableWithWidths(5, []int{2880, 1440, 1440}) // 2", 1", 1"
+
+// Access and format cells
+cell := table.Cell(0, 0)
+cell.SetText("Header")
+cell.Bold()
+cell.Center()
+cell.Background("E0E0E0")
+
+// Format entire row
+row := table.Row(0)
+row.Justify("center")
+```
+
+### Document Properties
+
+```go
+// Set properties individually
+doc.SetTitle("Annual Report 2025")
+doc.SetAuthor("Finance Team")
+doc.SetSubject("Q4 Financial Summary")
+doc.SetKeywords("finance, report, quarterly")
+doc.SetContentStatus("Final")
+
+// Or set all at once
+props := doc.GetProperties()
+props.Title = "My Document"
+props.Creator = "Go Application"
+doc.SetProperties(props)
+```
+
 ## Template Syntax
 
 Use standard Go `text/template` syntax in your DOCX files:
@@ -79,9 +172,16 @@ Use standard Go `text/template` syntax in your DOCX files:
 | `title` | `{{.Name \| title}}` | John Doe |
 | `bold` | `{{bold .Name}}` | **John** |
 | `italic` | `{{italic .Name}}` | *John* |
-| `underline` | `{{underline .Name}}` | <u>John</u> |
+| `underline` | `{{underline .Name}}` | Underlined |
+| `strikethrough` | `{{strikethrough .Name}}` | ~~Strikethrough~~ |
 | `color` | `{{color "FF0000" .Name}}` | Red text |
 | `highlight` | `{{highlight "yellow" .Name}}` | Highlighted |
+| `bgColor` | `{{bgColor "FFFF00" .Name}}` | Background color |
+| `fontSize` | `{{fontSize 28 .Name}}` | 14pt text |
+| `fontFamily` | `{{fontFamily "Arial" .Name}}` | Arial font |
+| `subscript` | `{{subscript "2"}}` | H₂O style |
+| `superscript` | `{{superscript "2"}}` | X² style |
+| `smallCaps` | `{{smallCaps .Name}}` | Small capitals |
 | `link` | `{{link "https://..." "Click"}}` | Hyperlink |
 
 ### Numbers & Currency
