@@ -1,0 +1,44 @@
+# Build directories
+_build/
+_output/
+bin/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# IDE specific files
+.vscode/
+.idea/
+*.iml
+
+# Environment files
+.env
+.env.local
+.venv/
+env/
+venv/
+
+# AI IDE folders
+.claude/
+
+# Test output files
+test_output*.docx
+test_templates/generated_*.docx
+
+# Coverage reports
+coverage.out
+coverage.html
+*.coverprofile
+
+# Go build cache
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
