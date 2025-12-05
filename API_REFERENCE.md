@@ -16,6 +16,14 @@ Complete API reference for the go-docxgen library.
 - [Inline Images](#inline-images)
 - [Custom Functions](#custom-functions)
 - [Template Functions](#template-functions)
+- [Document Metadata](#document-metadata)
+- [List Operations](#list-operations)
+- [Enhanced Table Operations](#enhanced-table-operations)
+- [Export/Conversion Functions](#exportconversion-functions)
+- [Section Operations](#section-operations)
+- [Template Validation](#template-validation)
+- [Document Comparison](#document-comparison)
+- [Batch Operations](#batch-operations)
 
 ---
 
@@ -965,3 +973,585 @@ Colors are specified as 6-character hex codes without the `#` prefix:
 ## Highlight Colors
 
 Valid highlight colors: `yellow`, `green`, `cyan`, `magenta`, `blue`, `red`, `darkBlue`, `darkCyan`, `darkGreen`, `darkMagenta`, `darkRed`, `darkYellow`, `darkGray`, `lightGray`, `black`
+
+---
+
+## Document Metadata
+
+### GetMetadata
+```go
+func (d *DocxTmpl) GetMetadata() *DocumentMetadata
+```
+Extract document metadata (title, author, dates, etc.).
+
+**Example:**
+```go
+meta := doc.GetMetadata()
+fmt.Println("Author:", meta.Creator)
+fmt.Println("Created:", meta.Created)
+```
+
+### SetMetadata
+```go
+func (d *DocxTmpl) SetMetadata(meta *DocumentMetadata)
+```
+Set document metadata. Only non-empty fields are updated.
+
+**Example:**
+```go
+doc.SetMetadata(&DocumentMetadata{
+    Title:   "My Report",
+    Creator: "John Doe",
+    Keywords: "report, quarterly, finance",
+})
+```
+
+### GetStats
+```go
+func (d *DocxTmpl) GetStats() *DocumentStats
+```
+Get document statistics.
+
+**Example:**
+```go
+stats := doc.GetStats()
+fmt.Printf("Words: %d, Paragraphs: %d\n", stats.WordCount, stats.ParagraphCount)
+```
+
+**DocumentStats:**
+```go
+type DocumentStats struct {
+    ParagraphCount int
+    TableCount     int
+    WordCount      int
+    CharCount      int // without spaces
+    CharCountSpace int // with spaces
+    LineCount      int
+    ImageCount     int
+    LinkCount      int
+}
+```
+
+### GetOutline
+```go
+func (d *DocxTmpl) GetOutline() []OutlineItem
+```
+Extract document structure as heading outline.
+
+**Example:**
+```go
+outline := doc.GetOutline()
+for _, item := range outline {
+    fmt.Printf("H%d: %s\n", item.Level, item.Text)
+}
+```
+
+### GetAllHyperlinks
+```go
+func (d *DocxTmpl) GetAllHyperlinks() []HyperlinkInfo
+```
+Get all hyperlinks in the document.
+
+### GetAllStyles
+```go
+func (d *DocxTmpl) GetAllStyles() []string
+```
+Get all paragraph styles used in the document.
+
+### GetTextByStyle
+```go
+func (d *DocxTmpl) GetTextByStyle(style string) []string
+```
+Get all text from paragraphs with a specific style.
+
+**Example:**
+```go
+headings := doc.GetTextByStyle("Heading1")
+```
+
+---
+
+## List Operations
+
+### AddBulletList
+```go
+func (d *DocxTmpl) AddBulletList(items []string) *List
+```
+Add a bullet list.
+
+**Example:**
+```go
+doc.AddBulletList([]string{
+    "First item",
+    "Second item",
+    "Third item",
+})
+```
+
+### AddNumberedList
+```go
+func (d *DocxTmpl) AddNumberedList(items []string) *List
+```
+Add a numbered list.
+
+**Example:**
+```go
+doc.AddNumberedList([]string{
+    "Step one",
+    "Step two",
+    "Step three",
+})
+```
+
+### AddNestedList
+```go
+func (d *DocxTmpl) AddNestedList(listType ListType, items []ListItem) *List
+```
+Add a nested list with multiple levels.
+
+**Example:**
+```go
+doc.AddNestedList(ListTypeBullet, []ListItem{
+    {Text: "Item 1", Children: []ListItem{
+        {Text: "Sub-item 1.1"},
+        {Text: "Sub-item 1.2"},
+    }},
+    {Text: "Item 2"},
+})
+```
+
+### NewListBuilder
+```go
+func (d *DocxTmpl) NewListBuilder(listType ListType) *ListBuilder
+```
+Create a fluent list builder.
+
+**Example:**
+```go
+doc.NewListBuilder(ListTypeBullet).
+    Item("First").
+    Item("Second").
+    Indent().Item("Nested").
+    Outdent().Item("Third").
+    Build()
+```
+
+### AddChecklistItem
+```go
+func (d *DocxTmpl) AddChecklistItem(text string, checked bool) *Paragraph
+```
+Add a checkbox item.
+
+**Example:**
+```go
+doc.AddChecklistItem("Complete task", true)
+doc.AddChecklistItem("Pending task", false)
+```
+
+---
+
+## Enhanced Table Operations
+
+### Table Row/Column Operations
+
+| Method | Description |
+|--------|-------------|
+| `AddRow() *TableRow` | Add new empty row |
+| `AddRowWithData(values ...string) *TableRow` | Add row with data |
+| `InsertRow(index int) *TableRow` | Insert row at position |
+| `DeleteRow(index int)` | Delete row |
+| `AddColumn()` | Add new column |
+| `InsertColumn(index int)` | Insert column at position |
+| `DeleteColumn(index int)` | Delete column |
+
+### Table Sorting
+```go
+func (t *Table) SortByColumn(col int, ascending, skipHeader bool) *Table
+```
+Sort table rows by column.
+
+**Example:**
+```go
+table.SortByColumn(0, true, true) // Sort by first column, ascending, skip header
+```
+
+### Table Export
+
+#### ToJSON
+```go
+func (t *Table) ToJSON(headers bool) (string, error)
+```
+Export table as JSON.
+
+**Example:**
+```go
+jsonStr, _ := table.ToJSON(true) // Use first row as headers
+// Returns: [{"Name":"John","Age":"30"},{"Name":"Jane","Age":"25"}]
+```
+
+#### ToCSV
+```go
+func (t *Table) ToCSV() string
+```
+Export table as CSV.
+
+#### ToSlice
+```go
+func (t *Table) ToSlice() [][]string
+```
+Export table as 2D string slice.
+
+### Table Import
+
+#### AddTableFromJSON
+```go
+func (d *DocxTmpl) AddTableFromJSON(jsonStr string, headers ...string) (*Table, error)
+```
+Create table from JSON.
+
+**Example:**
+```go
+doc.AddTableFromJSON(`[{"Name":"John","Age":"30"}]`)
+```
+
+#### AddTableFromCSV
+```go
+func (d *DocxTmpl) AddTableFromCSV(csvStr string) (*Table, error)
+```
+Create table from CSV.
+
+#### AddTableFromSlice
+```go
+func (d *DocxTmpl) AddTableFromSlice(data [][]string) *Table
+```
+Create table from 2D slice.
+
+#### AddTableWithHeaders
+```go
+func (d *DocxTmpl) AddTableWithHeaders(headers []string, data [][]string) *Table
+```
+Create table with header row (automatically bolded and centered).
+
+**Example:**
+```go
+doc.AddTableWithHeaders(
+    []string{"Name", "Age", "City"},
+    [][]string{
+        {"John", "30", "NYC"},
+        {"Jane", "25", "LA"},
+    },
+)
+```
+
+### Table Cell Operations
+
+| Method | Description |
+|--------|-------------|
+| `SetColumnWidth(col, twips int)` | Set column width |
+| `SetAllColumnWidths(widths []int)` | Set all column widths |
+| `SetRowHeight(row, twips int)` | Set row height |
+| `ClearRow(index int)` | Clear row content |
+| `ClearColumn(col int)` | Clear column content |
+| `FillColumn(col int, value string)` | Fill column with value |
+| `FillRow(row int, value string)` | Fill row with value |
+| `GetColumn(col int) []string` | Get column values |
+| `GetRowData(row int) []string` | Get row values |
+| `FindRow(col int, value string) int` | Find row by value |
+| `FindAllRows(col int, value string) []int` | Find all matching rows |
+
+---
+
+## Export/Conversion Functions
+
+### ToStructured
+```go
+func (d *DocxTmpl) ToStructured() *StructuredDocument
+```
+Convert document to structured format for AI/LLM consumption.
+
+**Example:**
+```go
+structured := doc.ToStructured()
+fmt.Println("Paragraphs:", len(structured.Paragraphs))
+```
+
+### ToJSON
+```go
+func (d *DocxTmpl) ToJSON() (string, error)
+```
+Export document structure as JSON.
+
+**Example:**
+```go
+jsonStr, _ := doc.ToJSON()
+fmt.Println(jsonStr)
+```
+
+### ToMarkdown
+```go
+func (d *DocxTmpl) ToMarkdown() string
+```
+Convert document to Markdown format.
+
+**Example:**
+```go
+markdown := doc.ToMarkdown()
+// Output:
+// # Title
+// ## Heading
+// **Bold text** and *italic text*
+// | Header | Header |
+// | --- | --- |
+// | Cell | Cell |
+```
+
+### ToHTML
+```go
+func (d *DocxTmpl) ToHTML() string
+```
+Convert document to basic HTML.
+
+**Example:**
+```go
+html := doc.ToHTML()
+// Output: <!DOCTYPE html><html>...
+```
+
+---
+
+## Section Operations
+
+### AddSection
+```go
+func (d *DocxTmpl) AddSection() *DocxTmpl
+```
+Add a section break (page break).
+
+### AddSectionBreak
+```go
+func (d *DocxTmpl) AddSectionBreak(breakType SectionBreakType) *DocxTmpl
+```
+Add a section break of specified type.
+
+**Section Break Types:**
+- `SectionBreakNextPage` - Start on next page
+- `SectionBreakContinuous` - Continue on same page
+- `SectionBreakEvenPage` - Start on next even page
+- `SectionBreakOddPage` - Start on next odd page
+
+### EstimatePageCount
+```go
+func (d *DocxTmpl) EstimatePageCount() int
+```
+Estimate number of pages in document.
+
+---
+
+## Template Validation
+
+### ValidateData
+```go
+func (d *DocxTmpl) ValidateData(data any) []ValidationError
+```
+Validate that data contains all required template fields.
+
+**Example:**
+```go
+errors := doc.ValidateData(data)
+if len(errors) > 0 {
+    for _, err := range errors {
+        fmt.Printf("Missing: %s\n", err.Field)
+    }
+}
+```
+
+### GetRequiredFields
+```go
+func (d *DocxTmpl) GetRequiredFields() []FieldInfo
+```
+Get information about all required template fields.
+
+**Example:**
+```go
+fields := doc.GetRequiredFields()
+for _, f := range fields {
+    fmt.Printf("Field: %s, Type: %s, Occurrences: %d\n",
+        f.Name, f.Type, f.Occurrences)
+}
+```
+
+### GetPlaceholderSchema
+```go
+func (d *DocxTmpl) GetPlaceholderSchema() map[string]FieldSchema
+```
+Get JSON schema-like representation of placeholders.
+
+### PreviewRender
+```go
+func (d *DocxTmpl) PreviewRender(data any) (string, error)
+```
+Render template and return text content (for preview/validation).
+
+### GenerateSampleData
+```go
+func (d *DocxTmpl) GenerateSampleData() map[string]interface{}
+```
+Generate sample data matching template placeholders.
+
+### ValidatePlaceholderSyntax
+```go
+func (d *DocxTmpl) ValidatePlaceholderSyntax() []ValidationError
+```
+Check placeholders for syntax errors.
+
+---
+
+## Document Comparison
+
+### CompareDocuments
+```go
+func CompareDocuments(doc1, doc2 *DocxTmpl) *DocumentDiff
+```
+Compare two documents and return differences.
+
+**Example:**
+```go
+doc1, _ := docxtpl.ParseFromFilename("version1.docx")
+doc2, _ := docxtpl.ParseFromFilename("version2.docx")
+diff := docxtpl.CompareDocuments(doc1, doc2)
+fmt.Println(diff.String())
+```
+
+### DiffWith
+```go
+func (d *DocxTmpl) DiffWith(other *DocxTmpl) *DocumentDiff
+```
+Compare this document with another.
+
+**Example:**
+```go
+diff := doc1.DiffWith(doc2)
+if diff.HasChanges() {
+    fmt.Printf("Total changes: %d\n", diff.Summary.TotalChanges)
+}
+```
+
+### DocumentDiff Methods
+
+| Method | Description |
+|--------|-------------|
+| `HasChanges() bool` | Check if there are any differences |
+| `String() string` | Get human-readable summary |
+| `GetChanges() []DiffItem` | Get all changes as flat list |
+
+### CompareStats
+```go
+func CompareStats(stats1, stats2 *DocumentStats) map[string]int
+```
+Compare document statistics.
+
+### CompareMetadata
+```go
+func CompareMetadata(meta1, meta2 *DocumentMetadata) map[string][2]string
+```
+Compare document metadata.
+
+---
+
+## Batch Operations
+
+### Clone
+```go
+func (d *DocxTmpl) Clone() (*DocxTmpl, error)
+```
+Create a deep copy of the document.
+
+**Example:**
+```go
+clone, _ := doc.Clone()
+clone.Render(differentData)
+clone.SaveToFile("copy.docx")
+```
+
+### MergeDocuments
+```go
+func MergeDocuments(docs ...*DocxTmpl) (*DocxTmpl, error)
+```
+Combine multiple documents into one.
+
+**Example:**
+```go
+merged, _ := docxtpl.MergeDocuments(doc1, doc2, doc3)
+merged.SaveToFile("combined.docx")
+```
+
+### MailMerge
+```go
+func (d *DocxTmpl) MailMerge(records []map[string]any) ([]*DocxTmpl, error)
+```
+Render template with multiple data records.
+
+**Example:**
+```go
+records := []map[string]any{
+    {"Name": "John", "Email": "john@example.com"},
+    {"Name": "Jane", "Email": "jane@example.com"},
+}
+docs, _ := template.MailMerge(records)
+```
+
+### MailMergeToFiles
+```go
+func (d *DocxTmpl) MailMergeToFiles(records []map[string]any, pattern string) error
+```
+Mail merge and save each result to a file.
+
+**Example:**
+```go
+template.MailMergeToFiles(records, "output/letter_%d.docx")
+// Creates: output/letter_1.docx, output/letter_2.docx, ...
+```
+
+### MailMergeToSingle
+```go
+func (d *DocxTmpl) MailMergeToSingle(records []map[string]any) (*DocxTmpl, error)
+```
+Mail merge into a single document with page breaks.
+
+### SearchWithContext
+```go
+func (d *DocxTmpl) SearchWithContext(text string, contextLines int) []SearchResult
+```
+Search for text and return matches with surrounding context.
+
+**Example:**
+```go
+results := doc.SearchWithContext("important", 2)
+for _, r := range results {
+    fmt.Printf("Found at paragraph %d:\n%s\n", r.Paragraph, r.Context)
+}
+```
+
+### Batch Utilities
+
+| Function | Description |
+|----------|-------------|
+| `BatchProcess(docs, fn)` | Apply function to each document |
+| `BatchRender(templates, dataList)` | Render multiple templates |
+| `ReplaceInAll(docs, old, new)` | Replace text in all documents |
+| `LoadAllFromDirectory(dir)` | Load all .docx files from directory |
+| `SaveAllToDirectory(docs, dir, names)` | Save all documents to directory |
+| `ProcessDirectory(in, out, fn)` | Process all .docx files in directory |
+
+**Example:**
+```go
+// Load all documents from directory
+docs, _ := docxtpl.LoadAllFromDirectory("templates/")
+
+// Replace text in all
+docxtpl.ReplaceInAll(docs, "2023", "2024")
+
+// Save all to output directory
+names := []string{"doc1.docx", "doc2.docx"}
+docxtpl.SaveAllToDirectory(docs, "output/", names)
+```
