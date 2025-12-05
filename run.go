@@ -68,7 +68,7 @@ func (r *Run) SizePoints(points int) *Run {
 // Font sets the font family for this run.
 // fontName is applied to ASCII and high ANSI characters.
 func (r *Run) Font(fontName string) *Run {
-	r.run.Font(fontName, fontName, "default")
+	r.run.Font(fontName, fontName, fontName, "default")
 	return r
 }
 

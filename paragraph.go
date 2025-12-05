@@ -187,7 +187,7 @@ func (p *Paragraph) SizePoints(points int) *Paragraph {
 // Font sets the font family for the paragraph text.
 func (p *Paragraph) Font(fontName string) *Paragraph {
 	if p.lastRun != nil {
-		p.lastRun.Font(fontName, fontName, "default")
+		p.lastRun.Font(fontName, fontName, fontName, "default")
 	}
 	return p
 }

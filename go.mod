@@ -5,7 +5,7 @@ go 1.23.2
 require (
 	github.com/bep/imagemeta v0.8.1
 	github.com/dlclark/regexp2 v1.11.4
-	github.com/fumiama/go-docx v0.0.0-20240924153044-f7d29bb5c371
+	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
 	github.com/fumiama/imgsz v0.0.2
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
