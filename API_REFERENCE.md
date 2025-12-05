@@ -24,6 +24,11 @@ Complete API reference for the go-docxgen library.
 - [Template Validation](#template-validation)
 - [Document Comparison](#document-comparison)
 - [Batch Operations](#batch-operations)
+- [Tracked Changes](#tracked-changes)
+- [Comments](#comments)
+- [Raw XML Access](#raw-xml-access)
+- [Bookmarks](#bookmarks)
+- [Document Protection](#document-protection)
 
 ---
 
@@ -1555,3 +1560,324 @@ docxtpl.ReplaceInAll(docs, "2023", "2024")
 names := []string{"doc1.docx", "doc2.docx"}
 docxtpl.SaveAllToDirectory(docs, "output/", names)
 ```
+
+---
+
+## Tracked Changes
+
+Track changes (revisions) support for reviewing document modifications.
+
+### Types
+
+```go
+type TrackedChangeType string
+
+const (
+    ChangeTypeInsertion TrackedChangeType = "insertion"
+    ChangeTypeDeletion  TrackedChangeType = "deletion"
+)
+
+type TrackedChange struct {
+    ID       int               // Change ID
+    Type     TrackedChangeType // insertion or deletion
+    Author   string            // Author who made the change
+    Date     time.Time         // When the change was made
+    Text     string            // The changed text
+    Location string            // Location description
+}
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `GetTrackedChanges()` | Get all tracked changes |
+| `HasTrackedChanges()` | Check if document has changes |
+| `GetInsertions()` | Get only insertions |
+| `GetDeletions()` | Get only deletions |
+| `CountTrackedChanges()` | Count insertions and deletions |
+| `AcceptAllChanges()` | Accept all tracked changes |
+| `RejectAllChanges()` | Reject all tracked changes |
+| `GetChangesByAuthor(author)` | Filter changes by author |
+| `EnableTrackChanges()` | Enable track changes mode |
+| `DisableTrackChanges()` | Disable track changes mode |
+| `IsTrackChangesEnabled()` | Check if track changes is enabled |
+| `TrackedChangesSummary()` | Get text summary of changes |
+
+**Example:**
+```go
+// Get all tracked changes
+changes := doc.GetTrackedChanges()
+for _, change := range changes {
+    fmt.Printf("%s by %s: %s\n", change.Type, change.Author, change.Text)
+}
+
+// Count changes
+ins, del := doc.CountTrackedChanges()
+fmt.Printf("Insertions: %d, Deletions: %d\n", ins, del)
+
+// Accept all changes
+doc.AcceptAllChanges()
+```
+
+---
+
+## Comments
+
+Extract and manage document comments.
+
+### Types
+
+```go
+type Comment struct {
+    ID        int       // Comment ID
+    Author    string    // Comment author
+    Initials  string    // Author initials
+    Date      time.Time // When the comment was created
+    Text      string    // Comment text content
+    ParentID  int       // Parent comment ID for replies (-1 if not a reply)
+    Paragraph int       // Paragraph index
+}
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `GetComments()` | Get all comments |
+| `HasComments()` | Check if document has comments |
+| `CountComments()` | Count total comments |
+| `GetCommentsByAuthor(author)` | Filter comments by author |
+| `GetCommentReplies(commentID)` | Get replies to a comment |
+| `GetTopLevelComments()` | Get only top-level comments |
+| `GetCommentAuthors()` | Get list of comment authors |
+| `GetCommentsInDateRange(start, end)` | Filter by date range |
+| `DeleteAllComments()` | Remove all comments |
+| `CommentsSummary()` | Get text summary |
+
+**Example:**
+```go
+// Get all comments
+comments := doc.GetComments()
+for _, c := range comments {
+    fmt.Printf("[%s] %s: %s\n", c.Date.Format("2006-01-02"), c.Author, c.Text)
+}
+
+// Get comments by author
+myComments := doc.GetCommentsByAuthor("John Doe")
+
+// Get summary
+fmt.Println(doc.CommentsSummary())
+```
+
+---
+
+## Raw XML Access
+
+Direct access to the underlying DOCX archive structure.
+
+### Types
+
+```go
+type XMLFile struct {
+    Path    string // File path within archive
+    Content string // XML content
+}
+
+type ArchiveInfo struct {
+    TotalFiles   int      // Total files in archive
+    XMLFiles     int      // Number of XML files
+    MediaFiles   int      // Number of media files
+    TotalSize    int64    // Total uncompressed size
+    FileList     []string // List of all file paths
+    HasComments  bool     // Has comments.xml
+    HasSettings  bool     // Has settings.xml
+    HasFootnotes bool     // Has footnotes.xml
+    HasEndnotes  bool     // Has endnotes.xml
+}
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `UnpackToDirectory(dirPath)` | Extract DOCX to directory |
+| `PackFromDirectory(dirPath)` | Create DOCX from directory |
+| `GetXMLFiles()` | List all XML files |
+| `GetXMLContent(filePath)` | Get XML content |
+| `SetXMLContent(filePath, content)` | Set XML content |
+| `GetArchiveInfo()` | Get archive information |
+| `GetRelationships()` | Get document relationships |
+| `GetContentTypesXML()` | Get content types |
+| `GetDocumentXML()` | Get main document XML |
+| `GetSettingsXML()` | Get settings XML |
+| `GetStylesXML()` | Get styles XML |
+
+**Example:**
+```go
+// Unpack to directory for manual editing
+err := doc.UnpackToDirectory("/tmp/unpacked")
+
+// Get list of XML files
+files := doc.GetXMLFiles()
+for _, f := range files {
+    fmt.Println(f)
+}
+
+// Get document XML
+xml, _ := doc.GetDocumentXML()
+
+// Get archive info
+info := doc.GetArchiveInfo()
+fmt.Printf("Total files: %d, XML: %d, Media: %d\n",
+    info.TotalFiles, info.XMLFiles, info.MediaFiles)
+
+// Pack from directory
+doc, _ := docxtpl.PackFromDirectory("/tmp/unpacked")
+```
+
+---
+
+## Bookmarks
+
+Navigate and manage document bookmarks.
+
+### Types
+
+```go
+type Bookmark struct {
+    ID   int    // Bookmark ID
+    Name string // Bookmark name
+    Text string // Text at bookmark location
+}
+
+type InternalLink struct {
+    Anchor string // Bookmark name
+    Text   string // Display text
+}
+
+type TableOfContentsEntry struct {
+    Level    int    // Entry level (1, 2, 3, etc.)
+    Text     string // Entry text
+    Page     string // Page number
+    Bookmark string // Bookmark reference
+}
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `GetBookmarks()` | Get all bookmarks |
+| `HasBookmark(name)` | Check if bookmark exists |
+| `GetBookmarkByName(name)` | Get bookmark by name |
+| `CountBookmarks()` | Count bookmarks |
+| `GetBookmarkNames()` | Get list of bookmark names |
+| `GetInternalLinks()` | Get internal hyperlinks |
+| `GetTableOfContents()` | Extract table of contents |
+| `HasTableOfContents()` | Check if TOC exists |
+| `BookmarksSummary()` | Get text summary |
+
+**Example:**
+```go
+// Get all bookmarks
+bookmarks := doc.GetBookmarks()
+for _, b := range bookmarks {
+    fmt.Printf("%s (ID: %d)\n", b.Name, b.ID)
+}
+
+// Check for specific bookmark
+if doc.HasBookmark("Chapter1") {
+    bookmark, _ := doc.GetBookmarkByName("Chapter1")
+    fmt.Println(bookmark.Name)
+}
+
+// Get internal links
+links := doc.GetInternalLinks()
+for _, l := range links {
+    fmt.Printf("'%s' -> #%s\n", l.Text, l.Anchor)
+}
+
+// Get table of contents
+toc := doc.GetTableOfContents()
+for _, entry := range toc {
+    fmt.Printf("%s%s\n", strings.Repeat("  ", entry.Level-1), entry.Text)
+}
+```
+
+---
+
+## Document Protection
+
+Manage document protection and restrictions.
+
+### Types
+
+```go
+type ProtectionType string
+
+const (
+    ProtectionNone           ProtectionType = "none"
+    ProtectionReadOnly       ProtectionType = "readOnly"
+    ProtectionComments       ProtectionType = "comments"
+    ProtectionTrackedChanges ProtectionType = "trackedChanges"
+    ProtectionForms          ProtectionType = "forms"
+)
+
+type ProtectionInfo struct {
+    IsProtected    bool           // Whether protected
+    Type           ProtectionType // Protection type
+    HasPassword    bool           // Password set
+    EnforceMessage string         // Enforcement message
+}
+
+type RestrictionInfo struct {
+    CanEdit       bool // Can edit
+    CanComment    bool // Can comment
+    CanTrack      bool // Can make tracked changes
+    CanFillForms  bool // Can fill forms
+    CanFormatText bool // Can format text
+}
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `GetProtectionInfo()` | Get protection information |
+| `IsProtected()` | Check if document is protected |
+| `IsReadOnly()` | Check if read-only |
+| `SetProtection(type)` | Set protection type |
+| `RemoveProtection()` | Remove protection |
+| `SetReadOnly()` | Set read-only |
+| `AllowOnlyComments()` | Allow only comments |
+| `AllowOnlyTrackedChanges()` | Allow only tracked changes |
+| `AllowOnlyFormFilling()` | Allow only form filling |
+| `GetRestrictions()` | Get detailed restrictions |
+| `ProtectionSummary()` | Get text summary |
+
+**Example:**
+```go
+// Check protection
+info := doc.GetProtectionInfo()
+if info.IsProtected {
+    fmt.Printf("Protected: %s, Password: %v\n", info.Type, info.HasPassword)
+}
+
+// Set read-only protection
+doc.SetReadOnly()
+
+// Allow only comments
+doc.AllowOnlyComments()
+
+// Check restrictions
+restrictions := doc.GetRestrictions()
+if restrictions.CanComment {
+    fmt.Println("Comments are allowed")
+}
+
+// Remove protection
+doc.RemoveProtection()
+```
+
+**Note:** Password-based protection requires the Word application or a dedicated library.

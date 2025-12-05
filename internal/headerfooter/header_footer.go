@@ -11,6 +11,8 @@ var footerRegex = regexp.MustCompile(`^word/footer[0-9]+\.xml$`)
 var footnotesRegex = regexp.MustCompile(`^word/footnotes\.xml$`)
 var endnotesRegex = regexp.MustCompile(`^word/endnotes\.xml$`)
 var docPropsRegex = regexp.MustCompile(`^docProps/(core|app)\.xml$`)
+var settingsRegex = regexp.MustCompile(`^word/settings\.xml$`)
+var commentsRegex = regexp.MustCompile(`^word/comments\.xml$`)
 
 // WatermarkRegex matches the string attribute in VML textpath elements (watermarks)
 // Example: <v:textpath ... string="DRAFT" ...>
@@ -61,7 +63,19 @@ func isProcessableFile(name string) bool {
 		footerRegex.MatchString(name) ||
 		footnotesRegex.MatchString(name) ||
 		endnotesRegex.MatchString(name) ||
-		docPropsRegex.MatchString(name)
+		docPropsRegex.MatchString(name) ||
+		settingsRegex.MatchString(name) ||
+		commentsRegex.MatchString(name)
+}
+
+// IsSettings returns true if the given filename is the settings file.
+func IsSettings(name string) bool {
+	return settingsRegex.MatchString(name)
+}
+
+// IsComments returns true if the given filename is the comments file.
+func IsComments(name string) bool {
+	return commentsRegex.MatchString(name)
 }
 
 // IsDocProps returns true if the given filename is a document properties file.
