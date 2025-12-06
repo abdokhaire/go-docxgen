@@ -685,7 +685,7 @@ Employee Count: {{len .Employees}}
 
 ---
 
-Example template files are also available in the [test_templates](https://github.com/abdokhaire/go-docxgen/tree/main/test_templates) directory.
+Example template files are also available in the [test/testdata/templates](https://github.com/abdokhaire/go-docxgen/tree/main/test/testdata/templates) directory.
 
 ## Acknowledgements
 

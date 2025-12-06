@@ -28,7 +28,7 @@ venv/
 
 # Test output files
 test_output*.docx
-test_templates/generated_*.docx
+test/testdata/templates/generated_*.docx
 
 # Coverage reports
 coverage.out

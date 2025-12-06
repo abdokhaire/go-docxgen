@@ -1,9 +1,10 @@
-package docxtpl
+package docxtpl_test
 
 import (
 	"os"
 	"testing"
 
+	"github.com/abdokhaire/go-docxgen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -11,11 +12,11 @@ import (
 func TestParseFromBytes(t *testing.T) {
 	t.Run("Should parse document from bytes", func(t *testing.T) {
 		// Read the file into bytes
-		data, err := os.ReadFile("test_templates/test_basic.docx")
+		data, err := os.ReadFile("testdata/templates/test_basic.docx")
 		require.NoError(t, err)
 
 		// Parse from bytes
-		doc, err := ParseFromBytes(data)
+		doc, err := docxtpl.ParseFromBytes(data)
 		require.NoError(t, err)
 		assert.NotNil(t, doc)
 
@@ -33,7 +34,7 @@ func TestParseFromBytes(t *testing.T) {
 func TestSaveToFile(t *testing.T) {
 	t.Run("Should save document to file", func(t *testing.T) {
 		// Parse a document
-		doc, err := ParseFromFilename("test_templates/test_basic.docx")
+		doc, err := docxtpl.ParseFromFilename("testdata/templates/test_basic.docx")
 		require.NoError(t, err)
 
 		// Render with data
@@ -46,7 +47,7 @@ func TestSaveToFile(t *testing.T) {
 		require.NoError(t, err)
 
 		// Save to file
-		outputPath := "test_templates/generated_test_save_to_file.docx"
+		outputPath := "testdata/templates/generated_test_save_to_file.docx"
 		err = doc.SaveToFile(outputPath)
 		assert.NoError(t, err)
 
@@ -61,7 +62,7 @@ func TestSaveToFile(t *testing.T) {
 
 func TestGetPlaceholders(t *testing.T) {
 	t.Run("Should return all placeholders from document", func(t *testing.T) {
-		doc, err := ParseFromFilename("test_templates/test_basic.docx")
+		doc, err := docxtpl.ParseFromFilename("testdata/templates/test_basic.docx")
 		require.NoError(t, err)
 
 		placeholders, err := doc.GetPlaceholders()
@@ -82,7 +83,7 @@ func TestGetPlaceholders(t *testing.T) {
 	})
 
 	t.Run("Should return unique placeholders only", func(t *testing.T) {
-		doc, err := ParseFromFilename("test_templates/test_with_tables.docx")
+		doc, err := docxtpl.ParseFromFilename("testdata/templates/test_with_tables.docx")
 		require.NoError(t, err)
 
 		placeholders, err := doc.GetPlaceholders()
@@ -99,7 +100,7 @@ func TestGetPlaceholders(t *testing.T) {
 
 func TestNewlineConversion(t *testing.T) {
 	t.Run("Should convert newlines to line breaks in rendered document", func(t *testing.T) {
-		doc, err := ParseFromFilename("test_templates/test_basic.docx")
+		doc, err := docxtpl.ParseFromFilename("testdata/templates/test_basic.docx")
 		require.NoError(t, err)
 
 		// Render with data containing newlines
@@ -112,7 +113,7 @@ func TestNewlineConversion(t *testing.T) {
 		require.NoError(t, err)
 
 		// Save and verify no error
-		outputPath := "test_templates/generated_test_newlines.docx"
+		outputPath := "testdata/templates/generated_test_newlines.docx"
 		err = doc.SaveToFile(outputPath)
 		assert.NoError(t, err)
 

@@ -274,7 +274,7 @@ Uses standard Go `text/template` syntax in DOCX files:
 
 ## Test Templates
 
-Example templates in `test_templates/`:
+Example templates in `test/testdata/templates/`:
 - `test_basic.docx` - Simple field replacement
 - `test_basic_with_images.docx` - Image insertion
 - `test_with_tables.docx` - Table iteration with `{{range}}`

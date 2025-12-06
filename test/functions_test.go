@@ -1,8 +1,9 @@
-package docxtpl
+package docxtpl_test
 
 import (
 	"testing"
 
+	"github.com/abdokhaire/go-docxgen"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +40,7 @@ func TestRegisterFunctions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			doc, err := ParseFromFilename("test_templates/test_basic.docx")
+			doc, err := docxtpl.ParseFromFilename("testdata/templates/test_basic.docx")
 			assert.Nil(err)
 
 			err = doc.RegisterFunction(tt.fnName, tt.fn)
