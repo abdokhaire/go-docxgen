@@ -8,11 +8,14 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"io"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bep/imagemeta"
 	"github.com/fumiama/go-docx"
@@ -61,6 +64,115 @@ func CreateInlineImage(filepath string) (*InlineImage, error) {
 	ext := path.Ext(filepath)
 
 	return &InlineImage{&file, ext}, nil
+}
+
+// CreateInlineImageFromURL downloads an image from a URL and returns an InlineImage.
+// Images can be Jpegs (.jpg or .jpeg) or PNGs.
+// Timeout defaults to 30 seconds.
+//
+//	img, err := CreateInlineImageFromURL("https://example.com/image.png")
+func CreateInlineImageFromURL(url string) (*InlineImage, error) {
+	return CreateInlineImageFromURLWithTimeout(url, 30*time.Second)
+}
+
+// CreateInlineImageFromURLWithTimeout downloads an image from a URL with a custom timeout.
+//
+//	img, err := CreateInlineImageFromURLWithTimeout("https://example.com/image.png", 10*time.Second)
+func CreateInlineImageFromURLWithTimeout(url string, timeout time.Duration) (*InlineImage, error) {
+	// Validate URL has image extension
+	ext := getExtensionFromURL(url)
+	if ext == "" {
+		return nil, &InlineImageError{"URL does not point to a supported image format (jpg, jpeg, png)"}
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
+	// Download the image
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, &InlineImageError{fmt.Sprintf("failed to download image: %v", err)}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &InlineImageError{fmt.Sprintf("failed to download image: HTTP %d", resp.StatusCode)}
+	}
+
+	// Read the image data
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, &InlineImageError{fmt.Sprintf("failed to read image data: %v", err)}
+	}
+
+	// Validate it's actually an image by checking the header
+	contentType := resp.Header.Get("Content-Type")
+	if !isValidImageContentType(contentType) && !isValidImageData(data) {
+		return nil, &InlineImageError{"downloaded content is not a valid image"}
+	}
+
+	return &InlineImage{&data, ext}, nil
+}
+
+// CreateInlineImageFromBytes creates an InlineImage from raw bytes.
+// You must specify the extension (.jpg, .jpeg, or .png).
+//
+//	img, err := CreateInlineImageFromBytes(imageData, ".png")
+func CreateInlineImageFromBytes(data []byte, ext string) (*InlineImage, error) {
+	ext = strings.ToLower(ext)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		return nil, &InlineImageError{"unsupported image format: must be .jpg, .jpeg, or .png"}
+	}
+
+	if !isValidImageData(data) {
+		return nil, &InlineImageError{"data is not a valid image"}
+	}
+
+	return &InlineImage{&data, ext}, nil
+}
+
+// getExtensionFromURL extracts the image extension from a URL.
+func getExtensionFromURL(url string) string {
+	// Remove query string and fragment
+	url = strings.Split(url, "?")[0]
+	url = strings.Split(url, "#")[0]
+
+	ext := strings.ToLower(path.Ext(url))
+	switch ext {
+	case ".jpg", ".jpeg", ".png":
+		return ext
+	default:
+		return ""
+	}
+}
+
+// isValidImageContentType checks if the content type is a supported image type.
+func isValidImageContentType(contentType string) bool {
+	contentType = strings.ToLower(contentType)
+	return strings.Contains(contentType, "image/jpeg") ||
+		strings.Contains(contentType, "image/jpg") ||
+		strings.Contains(contentType, "image/png")
+}
+
+// isValidImageData checks if the data starts with valid image magic bytes.
+func isValidImageData(data []byte) bool {
+	if len(data) < 8 {
+		return false
+	}
+
+	// Check for JPEG magic bytes (FFD8FF)
+	if data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
+		return true
+	}
+
+	// Check for PNG magic bytes (89504E47)
+	if data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
+		return true
+	}
+
+	return false
 }
 
 func (i *InlineImage) getImageFormat() (imagemeta.ImageFormat, error) {

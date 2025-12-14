@@ -5,7 +5,212 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"text/template"
+
+	"github.com/abdokhaire/go-docxgen/internal/tags"
+	"github.com/abdokhaire/go-docxgen/internal/xmlutils"
 )
+
+// ValidationErrorType represents the type of validation error.
+type ValidationErrorType string
+
+const (
+	ErrorUnclosedTag     ValidationErrorType = "UNCLOSED_TAG"
+	ErrorUnmatchedEnd    ValidationErrorType = "UNMATCHED_END"
+	ErrorSyntaxError     ValidationErrorType = "SYNTAX_ERROR"
+	ErrorUndefinedField  ValidationErrorType = "UNDEFINED_FIELD"
+	ErrorInvalidFunction ValidationErrorType = "INVALID_FUNCTION"
+)
+
+// ValidationResult contains the results of template validation.
+type ValidationResult struct {
+	Valid  bool
+	Errors []ValidationError
+}
+
+// HasErrors returns true if there are any validation errors.
+func (r *ValidationResult) HasErrors() bool {
+	return len(r.Errors) > 0
+}
+
+// Error returns a combined error message for all validation errors.
+func (r *ValidationResult) Error() string {
+	if !r.HasErrors() {
+		return ""
+	}
+	var messages []string
+	for _, err := range r.Errors {
+		messages = append(messages, err.Error())
+	}
+	return strings.Join(messages, "; ")
+}
+
+// Validate checks the template for common errors without rendering.
+// It returns a ValidationResult containing any errors found.
+//
+//	result := doc.Validate()
+//	if result.HasErrors() {
+//	    for _, err := range result.Errors {
+//	        fmt.Println(err)
+//	    }
+//	}
+func (d *DocxTmpl) Validate() *ValidationResult {
+	result := &ValidationResult{Valid: true}
+
+	// Merge tags in document body
+	tags.MergeTags(d.Document.Body.Items)
+
+	// Get document XML
+	documentXml, err := d.getDocumentXml()
+	if err != nil {
+		result.Valid = false
+		result.Errors = append(result.Errors, ValidationError{
+			Field:   "document",
+			Message: "failed to get document XML: " + err.Error(),
+		})
+		return result
+	}
+
+	// Validate document body
+	bodyErrors := d.validateXmlContent(documentXml, "document body")
+	result.Errors = append(result.Errors, bodyErrors...)
+
+	// Validate headers, footers, etc.
+	for _, pf := range d.processableFiles {
+		location := getLocationName(pf.Name)
+		mergedContent := xmlutils.MergeFragmentedTagsInXml(pf.Content)
+		pfErrors := d.validateXmlContent(mergedContent, location)
+		result.Errors = append(result.Errors, pfErrors...)
+	}
+
+	result.Valid = len(result.Errors) == 0
+	return result
+}
+
+// validateXmlContent validates template syntax in XML content.
+func (d *DocxTmpl) validateXmlContent(content string, location string) []ValidationError {
+	var errors []ValidationError
+
+	// Check for unclosed tags
+	errors = append(errors, checkUnclosedTags(content, location)...)
+
+	// Check for unmatched end tags
+	errors = append(errors, checkUnmatchedEnds(content, location)...)
+
+	// Try to parse the template to catch syntax errors
+	errors = append(errors, d.checkTemplateSyntax(content, location)...)
+
+	return errors
+}
+
+// checkUnclosedTags checks for unclosed {{ without matching }}.
+func checkUnclosedTags(content string, location string) []ValidationError {
+	var errors []ValidationError
+
+	openCount := strings.Count(content, "{{")
+	closeCount := strings.Count(content, "}}")
+
+	if openCount > closeCount {
+		errors = append(errors, ValidationError{
+			Field:       location,
+			Message:     fmt.Sprintf("unclosed template tag detected (%d {{ vs %d }})", openCount, closeCount),
+			Placeholder: "{{...}}",
+		})
+	}
+
+	return errors
+}
+
+// checkUnmatchedEnds checks for {{end}} without matching {{if}}, {{range}}, etc.
+func checkUnmatchedEnds(content string, location string) []ValidationError {
+	var errors []ValidationError
+
+	tagRe := regexp.MustCompile(`\{\{[^}]+\}\}`)
+	allTags := tagRe.FindAllString(content, -1)
+
+	blockStack := 0
+	for _, tag := range allTags {
+		tagLower := strings.ToLower(tag)
+		if strings.Contains(tagLower, "{{if") ||
+			strings.Contains(tagLower, "{{range") ||
+			strings.Contains(tagLower, "{{with") ||
+			strings.Contains(tagLower, "{{block") ||
+			strings.Contains(tagLower, "{{define") {
+			blockStack++
+		} else if strings.Contains(tagLower, "{{end") {
+			blockStack--
+			if blockStack < 0 {
+				errors = append(errors, ValidationError{
+					Field:       location,
+					Message:     "{{end}} without matching opening tag",
+					Placeholder: tag,
+				})
+				blockStack = 0
+			}
+		}
+	}
+
+	if blockStack > 0 {
+		errors = append(errors, ValidationError{
+			Field:       location,
+			Message:     fmt.Sprintf("missing %d {{end}} tag(s)", blockStack),
+			Placeholder: "",
+		})
+	}
+
+	return errors
+}
+
+// checkTemplateSyntax attempts to parse the template to catch syntax errors.
+func (d *DocxTmpl) checkTemplateSyntax(content string, location string) []ValidationError {
+	var errors []ValidationError
+
+	preparedContent, err := xmlutils.PrepareXmlForTagReplacement(content)
+	if err != nil {
+		return errors
+	}
+
+	_, err = template.New("validate").Funcs(d.funcMap).Parse(preparedContent)
+	if err != nil {
+		errMsg := err.Error()
+
+		// Extract the problematic tag if possible
+		tagRe := regexp.MustCompile(`"([^"]*)"`)
+		matches := tagRe.FindStringSubmatch(errMsg)
+		problematicTag := ""
+		if len(matches) >= 2 {
+			problematicTag = matches[1]
+		}
+
+		errors = append(errors, ValidationError{
+			Field:       location,
+			Message:     errMsg,
+			Placeholder: problematicTag,
+		})
+	}
+
+	return errors
+}
+
+// getLocationName converts a file path to a human-readable location name.
+func getLocationName(filePath string) string {
+	if strings.Contains(filePath, "header") {
+		return "header"
+	}
+	if strings.Contains(filePath, "footer") {
+		return "footer"
+	}
+	if strings.Contains(filePath, "footnotes") {
+		return "footnotes"
+	}
+	if strings.Contains(filePath, "endnotes") {
+		return "endnotes"
+	}
+	if strings.Contains(filePath, "core.xml") {
+		return "document properties"
+	}
+	return filePath
+}
 
 // ValidationError represents a template validation error
 type ValidationError struct {
