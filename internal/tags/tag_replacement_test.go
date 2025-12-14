@@ -7,7 +7,8 @@ import (
 	"text/template"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/abdokhaire/go-docxgen/internal/functions"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func TestReplaceTagsInText(t *testing.T) {
@@ -54,7 +55,7 @@ func TestReplaceTagsInText(t *testing.T) {
 			data: map[string]any{
 				"Name": "Tom Watkins",
 			},
-			funcMap:     functions.DefaultFuncMap,
+			funcMap:     template.FuncMap{},
 			expectError: false,
 		},
 		{
@@ -104,7 +105,11 @@ func TestReplaceTagsInText(t *testing.T) {
 			data: map[string]any{
 				"Name": "Tom Watkins",
 			},
-			funcMap:     functions.DefaultFuncMap,
+			funcMap: template.FuncMap{
+				"upper": strings.ToUpper,
+				"lower": strings.ToLower,
+				"title": cases.Title(language.English).String,
+			},
 			expectError: false,
 		},
 		{
@@ -190,7 +195,7 @@ func TestReplaceTagsInText(t *testing.T) {
 					{"Name": "Evie Argyle"},
 				},
 			},
-			funcMap:     functions.DefaultFuncMap,
+			funcMap:     template.FuncMap{},
 			expectError: false,
 		},
 		{
@@ -200,7 +205,7 @@ func TestReplaceTagsInText(t *testing.T) {
 			data: map[string]any{
 				"Name": "Tom Watkins",
 			},
-			funcMap:     functions.DefaultFuncMap,
+			funcMap:     template.FuncMap{},
 			expectError: true,
 		},
 		{

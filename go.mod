@@ -7,7 +7,6 @@ require (
 	github.com/dlclark/regexp2 v1.11.4
 	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
 	github.com/fumiama/imgsz v0.0.2
-	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/image v0.21.0
 	golang.org/x/text v0.19.0

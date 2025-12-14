@@ -17,16 +17,8 @@ func (d *DocxTmpl) RegisterFunction(name string, fn any) error {
 	if !functions.FunctionNameValid(name) {
 		return fmt.Errorf("function name %q is not a valid identifier", name)
 	}
-
-	// Check the function signature
-	err := functions.FunctionValid(fn)
-	if err != nil {
-		return fmt.Errorf("error registering function (%s): %s", name, err.Error())
-	}
-
-	// Add to the function map
+	// Go's text/template handles function signature validation at execution time
 	d.funcMap[name] = fn
-
 	return nil
 }
 
@@ -35,4 +27,12 @@ func (d *DocxTmpl) GetRegisteredFunctions() *template.FuncMap {
 	copiedFuncMap := make(template.FuncMap)
 	maps.Copy(copiedFuncMap, d.funcMap)
 	return &copiedFuncMap
+}
+
+// RegisterFuncMap registers all functions from a template.FuncMap.
+// This is useful for adding external function libraries like Sprig.
+//
+//	doc.RegisterFuncMap(sprig.FuncMap())
+func (d *DocxTmpl) RegisterFuncMap(funcs template.FuncMap) {
+	maps.Copy(d.funcMap, funcs)
 }

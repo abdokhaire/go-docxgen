@@ -5,13 +5,11 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io"
-	"maps"
 	"os"
 	"text/template"
 
 	"github.com/fumiama/go-docx"
 	"github.com/abdokhaire/go-docxgen/internal/contenttypes"
-	"github.com/abdokhaire/go-docxgen/internal/functions"
 	"github.com/abdokhaire/go-docxgen/internal/headerfooter"
 	"github.com/abdokhaire/go-docxgen/internal/hyperlinks"
 	"github.com/abdokhaire/go-docxgen/internal/tags"
@@ -58,7 +56,6 @@ func Parse(reader io.ReaderAt, size int64) (*DocxTmpl, error) {
 	}
 
 	funcMap := make(template.FuncMap)
-	maps.Copy(funcMap, functions.DefaultFuncMap)
 
 	hyperlinkReg := hyperlinks.NewHyperlinkRegistry()
 

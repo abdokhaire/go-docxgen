@@ -28,12 +28,6 @@ func TestRegisterFunctions(t *testing.T) {
 			fn:          nil,
 			expectError: true,
 		},
-		{
-			name:        "Invalid function signature",
-			fnName:      "validFunction",
-			fn:          "not a valid function",
-			expectError: true,
-		},
 	}
 
 	for _, tt := range tests {
