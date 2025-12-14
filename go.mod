@@ -13,6 +13,8 @@ require (
 	golang.org/x/text v0.19.0
 )
 
+replace github.com/fumiama/go-docx => ./pkg/go-docx
+
 require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
