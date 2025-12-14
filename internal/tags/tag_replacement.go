@@ -3,6 +3,8 @@ package tags
 import (
 	"bytes"
 	"fmt"
+	"log"
+	"regexp"
 	"text/template"
 
 	"github.com/abdokhaire/go-docxgen/internal/xmlutils"
@@ -18,6 +20,12 @@ func ReplaceTagsInXml(xmlString string, data map[string]any, funcMap template.Fu
 
 	tmpl, err := template.New("").Funcs(funcMap).Parse(preparedXmlString)
 	if err != nil {
+		// Debug: extract and log any template blocks that contain & character
+		templateBlockRe := regexp.MustCompile(`\{\{[^}]*&[^}]*\}\}`)
+		problemBlocks := templateBlockRe.FindAllString(preparedXmlString, -1)
+		if len(problemBlocks) > 0 {
+			log.Printf("DEBUG go-docxgen: Found template blocks with '&' character: %v", problemBlocks)
+		}
 		return "", fmt.Errorf("error parsing template: %v", err)
 	}
 

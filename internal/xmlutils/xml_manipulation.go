@@ -1,6 +1,7 @@
 package xmlutils
 
 import (
+	"html"
 	"regexp"
 	"strings"
 
@@ -8,9 +9,52 @@ import (
 )
 
 func PrepareXmlForTagReplacement(xmlString string) (string, error) {
+	// First, decode XML entities within template tags
+	// Word often encodes " as &#34; or &quot; which breaks template parsing
+	xmlString = decodeEntitiesInTemplateTags(xmlString)
+
 	newXmlString, err := replaceTableRangeRows(xmlString)
 
 	return newXmlString, err
+}
+
+// decodeEntitiesInTemplateTags decodes XML/HTML entities within template tags.
+// Word often encodes characters like " as &#34; or &quot; which breaks template parsing.
+func decodeEntitiesInTemplateTags(xmlString string) string {
+	var result strings.Builder
+	i := 0
+
+	for i < len(xmlString) {
+		// Look for start of template tag
+		if i+1 < len(xmlString) && xmlString[i] == '{' && xmlString[i+1] == '{' {
+			// Find the end of the template tag
+			start := i
+			i += 2
+			depth := 1
+
+			for i < len(xmlString) && depth > 0 {
+				if i+1 < len(xmlString) && xmlString[i] == '{' && xmlString[i+1] == '{' {
+					depth++
+					i += 2
+				} else if i+1 < len(xmlString) && xmlString[i] == '}' && xmlString[i+1] == '}' {
+					depth--
+					i += 2
+				} else {
+					i++
+				}
+			}
+
+			// Extract the tag and decode HTML entities
+			tag := xmlString[start:i]
+			decoded := html.UnescapeString(tag)
+			result.WriteString(decoded)
+		} else {
+			result.WriteByte(xmlString[i])
+			i++
+		}
+	}
+
+	return result.String()
 }
 
 // MergeFragmentedTagsInXml merges template tags that are split across multiple
