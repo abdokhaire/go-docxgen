@@ -123,6 +123,142 @@ func (r *Run) parse(d *xml.Decoder, tt xml.StartElement) (child interface{}, err
 			return nil, err
 		}
 		child = &value
+	case "fldChar":
+		var value FldChar
+		// Capture attributes first
+		for _, attr := range tt.Attr {
+			switch attr.Name.Local {
+			case "fldCharType":
+				value.FldCharType = attr.Value
+			case "fldLock":
+				value.FldLock = attr.Value
+			case "dirty":
+				value.Dirty = attr.Value
+			}
+		}
+		// Parse children (ffData, fldData, etc.) if present
+		for {
+			tok, err1 := d.Token()
+			if err1 == io.EOF {
+				break
+			}
+			if err1 != nil {
+				return nil, err1
+			}
+			if et, ok := tok.(xml.EndElement); ok {
+				if et.Name.Local == "fldChar" {
+					break
+				}
+			}
+			if st, ok := tok.(xml.StartElement); ok {
+				if st.Name.Local == "ffData" {
+					var ffData FFData
+					err = d.DecodeElement(&ffData, &st)
+					if err != nil && !strings.HasPrefix(err.Error(), "expected") {
+						return nil, err
+					}
+					value.FFData = &ffData
+				} else {
+					// Skip other child elements
+					err = d.Skip()
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+		child = &value
+	case "delText":
+		var value DelText
+		err = d.DecodeElement(&value, &tt)
+		if err != nil && !strings.HasPrefix(err.Error(), "expected") {
+			return nil, err
+		}
+		child = &value
+	case "sym":
+		var value Sym
+		for _, attr := range tt.Attr {
+			switch attr.Name.Local {
+			case "font":
+				value.Font = attr.Value
+			case "char":
+				value.Char = attr.Value
+			}
+		}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+		child = &value
+	case "footnoteReference":
+		var value FootnoteReference
+		for _, attr := range tt.Attr {
+			if attr.Name.Local == "id" {
+				value.ID = attr.Value
+				break
+			}
+		}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+		child = &value
+	case "endnoteReference":
+		var value EndnoteReference
+		for _, attr := range tt.Attr {
+			if attr.Name.Local == "id" {
+				value.ID = attr.Value
+				break
+			}
+		}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+		child = &value
+	case "commentReference":
+		var value CommentReference
+		for _, attr := range tt.Attr {
+			if attr.Name.Local == "id" {
+				value.ID = attr.Value
+				break
+			}
+		}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+		child = &value
+	case "lastRenderedPageBreak":
+		child = &LastRenderedPageBreak{}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+	case "noBreakHyphen":
+		child = &NoBreakHyphen{}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+	case "softHyphen":
+		child = &SoftHyphen{}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+	case "cr":
+		child = &CR{}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
+	case "pgNum":
+		child = &PgNum{}
+		err = d.Skip()
+		if err != nil {
+			return nil, err
+		}
 	case "AlternateContent":
 		/*var value AlternateContent
 		value.file = r.file
@@ -196,6 +332,105 @@ func (r *Run) KeepElements(name ...string) {
 		}
 	}
 	r.Children = items
+}
+
+// FldChar represents a complex field character (begin, separate, end)
+// This is used for Word field constructs like MERGEFIELD, IF, QUOTE, etc.
+type FldChar struct {
+	XMLName     xml.Name `xml:"w:fldChar,omitempty"`
+	FldCharType string   `xml:"w:fldCharType,attr,omitempty"`
+	FldLock     string   `xml:"w:fldLock,attr,omitempty"`
+	Dirty       string   `xml:"w:dirty,attr,omitempty"`
+	// FFData contains form field data (for checkboxes, text inputs, dropdowns)
+	FFData *FFData `xml:"w:ffData,omitempty"`
+}
+
+// FFData represents form field data inside fldChar
+type FFData struct {
+	XMLName xml.Name `xml:"w:ffData,omitempty"`
+	// Store raw inner XML to preserve all form field properties
+	InnerXML string `xml:",innerxml"`
+}
+
+// DelText represents deleted text in tracked changes
+type DelText struct {
+	XMLName  xml.Name `xml:"w:delText,omitempty"`
+	XMLSpace string   `xml:"xml:space,attr,omitempty"`
+	Text     string   `xml:",chardata"`
+}
+
+// Sym represents a symbol character
+type Sym struct {
+	XMLName xml.Name `xml:"w:sym,omitempty"`
+	Font    string   `xml:"w:font,attr,omitempty"`
+	Char    string   `xml:"w:char,attr,omitempty"`
+}
+
+// FootnoteReference represents a reference to a footnote
+type FootnoteReference struct {
+	XMLName xml.Name `xml:"w:footnoteReference,omitempty"`
+	ID      string   `xml:"w:id,attr,omitempty"`
+}
+
+// EndnoteReference represents a reference to an endnote
+type EndnoteReference struct {
+	XMLName xml.Name `xml:"w:endnoteReference,omitempty"`
+	ID      string   `xml:"w:id,attr,omitempty"`
+}
+
+// CommentReference represents a reference to a comment
+type CommentReference struct {
+	XMLName xml.Name `xml:"w:commentReference,omitempty"`
+	ID      string   `xml:"w:id,attr,omitempty"`
+}
+
+// LastRenderedPageBreak marks where the last page break was rendered
+type LastRenderedPageBreak struct {
+	XMLName xml.Name `xml:"w:lastRenderedPageBreak,omitempty"`
+}
+
+// NoBreakHyphen represents a non-breaking hyphen
+type NoBreakHyphen struct {
+	XMLName xml.Name `xml:"w:noBreakHyphen,omitempty"`
+}
+
+// SoftHyphen represents a soft hyphen
+type SoftHyphen struct {
+	XMLName xml.Name `xml:"w:softHyphen,omitempty"`
+}
+
+// CR represents a carriage return
+type CR struct {
+	XMLName xml.Name `xml:"w:cr,omitempty"`
+}
+
+// PgNum represents a page number field
+type PgNum struct {
+	XMLName xml.Name `xml:"w:pgNum,omitempty"`
+}
+
+// RawXML preserves unknown XML elements that we don't explicitly handle.
+// This ensures we don't lose data when round-tripping documents.
+type RawXML struct {
+	XMLName xml.Name
+	XML     string `xml:",innerxml"`
+	Attrs   []xml.Attr
+}
+
+// MarshalXML outputs the raw XML element
+func (r *RawXML) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name = r.XMLName
+	start.Attr = r.Attrs
+	if err := e.EncodeToken(start); err != nil {
+		return err
+	}
+	if r.XML != "" {
+		// Write inner XML as raw characters using CharData
+		if err := e.EncodeToken(xml.CharData(r.XML)); err != nil {
+			return err
+		}
+	}
+	return e.EncodeToken(start.End())
 }
 
 // RunProperties encapsulates visual properties of a run

@@ -307,6 +307,80 @@ func (p *Paragraph) UnmarshalXML(d *xml.Decoder, _ xml.StartElement) error {
 				}
 				p.Properties = &value
 				continue
+			case "bookmarkStart":
+				var value BookmarkStart
+				for _, attr := range tt.Attr {
+					switch attr.Name.Local {
+					case "id":
+						value.ID = attr.Value
+					case "name":
+						value.Name = attr.Value
+					}
+				}
+				err = d.Skip()
+				if err != nil {
+					return err
+				}
+				elem = &value
+			case "bookmarkEnd":
+				var value BookmarkEnd
+				for _, attr := range tt.Attr {
+					if attr.Name.Local == "id" {
+						value.ID = attr.Value
+						break
+					}
+				}
+				err = d.Skip()
+				if err != nil {
+					return err
+				}
+				elem = &value
+			case "fldSimple":
+				var value FldSimple
+				err = d.DecodeElement(&value, &tt)
+				if err != nil && !strings.HasPrefix(err.Error(), "expected") {
+					return err
+				}
+				elem = &value
+			case "proofErr":
+				var value ProofErr
+				for _, attr := range tt.Attr {
+					if attr.Name.Local == "type" {
+						value.Type = attr.Value
+						break
+					}
+				}
+				err = d.Skip()
+				if err != nil {
+					return err
+				}
+				elem = &value
+			case "commentRangeStart":
+				var value CommentRangeStart
+				for _, attr := range tt.Attr {
+					if attr.Name.Local == "id" {
+						value.ID = attr.Value
+						break
+					}
+				}
+				err = d.Skip()
+				if err != nil {
+					return err
+				}
+				elem = &value
+			case "commentRangeEnd":
+				var value CommentRangeEnd
+				for _, attr := range tt.Attr {
+					if attr.Name.Local == "id" {
+						value.ID = attr.Value
+						break
+					}
+				}
+				err = d.Skip()
+				if err != nil {
+					return err
+				}
+				elem = &value
 			default:
 				err = d.Skip() // skip unsupported tags
 				if err != nil {
@@ -462,6 +536,82 @@ func (p *Paragraph) DropShapeAndCanvasAndGroup() {
 			r.Children = nrc
 		}
 	}
+}
+
+// BookmarkStart represents the start of a bookmark
+type BookmarkStart struct {
+	XMLName xml.Name `xml:"w:bookmarkStart,omitempty"`
+	ID      string   `xml:"w:id,attr,omitempty"`
+	Name    string   `xml:"w:name,attr,omitempty"`
+}
+
+// BookmarkEnd represents the end of a bookmark
+type BookmarkEnd struct {
+	XMLName xml.Name `xml:"w:bookmarkEnd,omitempty"`
+	ID      string   `xml:"w:id,attr,omitempty"`
+}
+
+// FldSimple represents a simple field (single-element field)
+type FldSimple struct {
+	XMLName  xml.Name `xml:"w:fldSimple,omitempty"`
+	Instr    string   `xml:"w:instr,attr,omitempty"`
+	Children []interface{}
+}
+
+// UnmarshalXML handles FldSimple parsing
+func (f *FldSimple) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	for _, attr := range start.Attr {
+		if attr.Name.Local == "instr" {
+			f.Instr = attr.Value
+			break
+		}
+	}
+	// Parse child runs
+	for {
+		t, err := d.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if et, ok := t.(xml.EndElement); ok {
+			if et.Name.Local == "fldSimple" {
+				break
+			}
+		}
+		if tt, ok := t.(xml.StartElement); ok {
+			if tt.Name.Local == "r" {
+				var run Run
+				err = d.DecodeElement(&run, &tt)
+				if err != nil && !strings.HasPrefix(err.Error(), "expected") {
+					return err
+				}
+				f.Children = append(f.Children, &run)
+			} else {
+				d.Skip()
+			}
+		}
+	}
+	return nil
+}
+
+// ProofErr represents a spelling or grammar error marker
+type ProofErr struct {
+	XMLName xml.Name `xml:"w:proofErr,omitempty"`
+	Type    string   `xml:"w:type,attr,omitempty"`
+}
+
+// CommentRangeStart represents the start of a comment range
+type CommentRangeStart struct {
+	XMLName xml.Name `xml:"w:commentRangeStart,omitempty"`
+	ID      string   `xml:"w:id,attr,omitempty"`
+}
+
+// CommentRangeEnd represents the end of a comment range
+type CommentRangeEnd struct {
+	XMLName xml.Name `xml:"w:commentRangeEnd,omitempty"`
+	ID      string   `xml:"w:id,attr,omitempty"`
 }
 
 // DropNilPicture drops all drawings with nil picture in paragraph

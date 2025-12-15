@@ -199,26 +199,48 @@ func TestMergeText(t *testing.T) {
 		t.Fatal(err)
 	}
 	np := p.MergeText(MergeAllRuns)
-	if len(np.Children) != 1 {
-		t.Fatal("expected only one run but has", len(np.Children))
+	// Count only Run children (proofErr elements are now preserved)
+	runCount := 0
+	var firstRun *Run
+	for _, c := range np.Children {
+		if r, ok := c.(*Run); ok {
+			runCount++
+			if firstRun == nil {
+				firstRun = r
+			}
+		}
 	}
-	if len(np.Children[0].(*Run).Children) != 1 {
-		t.Fatal("expected only one run.child but has", len(np.Children[0].(*Run).Children))
+	if runCount != 1 {
+		t.Fatal("expected only one run but has", runCount)
 	}
-	if np.Children[0].(*Run).Children[0].(*Text).Text != allmergedtext {
-		t.Fatal("expected merged text [", allmergedtext, "] but has [", np.Children[0].(*Run).Children[0].(*Text).Text, "]")
+	if len(firstRun.Children) != 1 {
+		t.Fatal("expected only one run.child but has", len(firstRun.Children))
+	}
+	if firstRun.Children[0].(*Text).Text != allmergedtext {
+		t.Fatal("expected merged text [", allmergedtext, "] but has [", firstRun.Children[0].(*Text).Text, "]")
 	}
 	np = p.MergeText(MergeSamePropRuns)
-	if len(np.Children) != 13 {
-		t.Fatal("expected 13 runs but has", len(np.Children))
+	// Count only Run children
+	runCount = 0
+	for _, c := range np.Children {
+		if _, ok := c.(*Run); ok {
+			runCount++
+		}
+	}
+	if runCount != 13 {
+		t.Fatal("expected 13 runs but has", runCount)
 	}
 	sb := strings.Builder{}
-	for _, r := range np.Children {
-		if len(r.(*Run).Children) > 1 {
-			t.Fatal("expected 0/1 run.child but has", len(r.(*Run).Children))
+	for _, c := range np.Children {
+		r, ok := c.(*Run)
+		if !ok {
+			continue // skip non-Run elements like ProofErr
 		}
-		if len(r.(*Run).Children) == 1 {
-			sb.WriteString(r.(*Run).Children[0].(*Text).Text)
+		if len(r.Children) > 1 {
+			t.Fatal("expected 0/1 run.child but has", len(r.Children))
+		}
+		if len(r.Children) == 1 {
+			sb.WriteString(r.Children[0].(*Text).Text)
 		}
 		sb.WriteString("|")
 	}
@@ -226,16 +248,27 @@ func TestMergeText(t *testing.T) {
 		t.Fatal("expected merged text [", propmergedtext, "] but has [", sb.String(), "]")
 	}
 	np = p.MergeText(MergeSamePropRunsOf("Bold", "Size", "Underline"))
-	if len(np.Children) != 7 {
-		t.Fatal("expected 7 runs but has", len(np.Children))
+	// Count only Run children
+	runCount = 0
+	for _, c := range np.Children {
+		if _, ok := c.(*Run); ok {
+			runCount++
+		}
+	}
+	if runCount != 7 {
+		t.Fatal("expected 7 runs but has", runCount)
 	}
 	sb.Reset()
-	for _, r := range np.Children {
-		if len(r.(*Run).Children) > 1 {
-			t.Fatal("expected 0/1 run.child but has", len(r.(*Run).Children))
+	for _, c := range np.Children {
+		r, ok := c.(*Run)
+		if !ok {
+			continue // skip non-Run elements like ProofErr
 		}
-		if len(r.(*Run).Children) == 1 {
-			sb.WriteString(r.(*Run).Children[0].(*Text).Text)
+		if len(r.Children) > 1 {
+			t.Fatal("expected 0/1 run.child but has", len(r.Children))
+		}
+		if len(r.Children) == 1 {
+			sb.WriteString(r.Children[0].(*Text).Text)
 		}
 		sb.WriteString("|")
 	}

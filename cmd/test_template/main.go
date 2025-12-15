@@ -17,7 +17,7 @@ func main() {
 	}
 
 	templatePath := os.Args[1]
-	outputPath := "output.docx"
+	outputPath := "test/testdata/templates/generated_output.docx"
 	if len(os.Args) >= 3 {
 		outputPath = os.Args[2]
 	}

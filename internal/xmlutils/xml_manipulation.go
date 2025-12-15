@@ -242,6 +242,11 @@ func replaceTableRangeRows(xmlString string) (string, error) {
 }
 
 func FixXmlIssuesPostTagReplacement(xmlString string) string {
+	// CRITICAL: Replace "<no value>" which Go templates output for nil/missing values
+	// This contains literal < and > characters that break XML parsing
+	// Note: missingkey=zero only handles missing map keys, not nil field access or chained nil access
+	xmlString = strings.ReplaceAll(xmlString, "<no value>", "")
+
 	// Fix issues with drawings in text nodes
 	xmlString = strings.ReplaceAll(xmlString, "<w:t><w:drawing>", "<w:drawing>")
 	xmlString = strings.ReplaceAll(xmlString, "</w:drawing></w:t>", "</w:drawing>")
