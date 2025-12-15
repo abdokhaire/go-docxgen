@@ -58,7 +58,7 @@ Create documents programmatically without templates:
 - `AddTableWithWidths(rows, colWidths)` - Table with custom column widths (twips)
 - `AddTableWithBorders(rows, cols, colors)` - Table with custom border colors
 
-### Paragraph Formatting (`paragraph.go`)
+### Paragraph Formatting (`formatting.go`)
 Fluent API for paragraph styling:
 - `Bold()`, `Italic()`, `Underline()`, `Strike()` - Text formatting
 - `Color(hex)`, `Highlight(color)`, `Background(hex)` - Colors
@@ -75,7 +75,7 @@ Fluent API for paragraph styling:
 - **Images**: `AddAnchorImage(data)`, `AddAnchorImageFromFile(path)`, `AddInlineImage(data)`, `AddInlineImageFromFile(path)`
 - **Shapes**: `AddAnchorShape(ShapeOptions)`, `AddInlineShape(ShapeOptions)` - rectangles, ellipses, arrows, stars, etc.
 
-### Run Formatting (`run.go`)
+### Run Formatting (`formatting.go`)
 Format individual text runs within paragraphs:
 - `Bold()`, `Italic()`, `Underline(style)`, `Strike()`, `DoubleStrike()` - Basic formatting
 - `Color(hex)`, `Highlight(color)`, `Background(hex)` - Colors
@@ -128,7 +128,7 @@ The library supports all common Go data types in templates:
 - **Maps**: `map[string]any`, `map[string]string`, etc.
 - **Nil values**: Nil pointers are handled gracefully
 
-### Inline Images (`inline_image.go`)
+### Inline Images (`image.go`)
 - `CreateInlineImage(filepath)` - Load image from file path
 - String values that are valid image paths are auto-converted to inline images
 - `InlineImage.Resize(width, height)` - Resize before rendering
@@ -253,6 +253,33 @@ The library supports all common Go data types in templates:
 | `camelCase` | `{{camelCase "hello world"}}` | → "helloWorld" |
 | `snakeCase` | `{{snakeCase "Hello World"}}` | → "hello_world" |
 | `kebabCase` | `{{kebabCase "Hello World"}}` | → "hello-world" |
+
+### Document Operations (`operations.go`)
+Batch processing and document manipulation:
+- **Cloning**: `Clone()` - Create independent copy of document
+- **Merging**: `MergeDocuments(docs...)`, `AppendDocument(doc)` - Combine documents
+- **Mail Merge**: `MailMerge(records)` - Generate multiple documents from data
+- **Batch Processing**: `BatchRender(records)`, `ProcessDirectory(input, output, data)`
+- **Text Operations**: `ReplaceText(old, new)`, `ReplaceTextInHeaders/Footers()`
+- **Lists**: `CreateBulletList(items)`, `CreateNumberedList(items)`, `AddListItem()`
+
+### Document Analysis (`analysis.go`)
+Advanced document inspection and manipulation:
+- **Comparison**: `Compare(other)` - Diff two documents, returns `DocumentDiff`
+- **Bookmarks**: `GetBookmarks()`, `AddBookmark()`, `GetInternalLinks()`, `GetTableOfContents()`
+- **Comments**: `GetComments()`, `AddComment()`, `DeleteComment()`, `ReplyToComment()`
+- **Tracked Changes**: `GetTrackedChanges()`, `AcceptChange()`, `RejectChange()`, `AcceptAllChanges()`
+- **Protection**: `GetProtectionInfo()`, `Protect()`, `Unprotect()`, `IsProtected()`
+- **Export**: `ToJSON()`, `ToMarkdown()`, `ToHTML()`, `ToStructuredDocument()`
+- **XML Access**: `UnpackToDirectory()`, `PackFromDirectory()`, `GetXMLContent()`, `SetXMLContent()`
+
+### Validation (`validation.go`)
+Template validation and error handling:
+- **Validation**: `Validate()` - Check template syntax, returns `[]ValidationError`
+- **Data Validation**: `ValidateData(data)` - Check data against template requirements
+- **Field Discovery**: `GetRequiredFields()` - Extract required field names
+- **Error Types**: `TemplateError`, `ErrorSummary`, `ValidationError`
+- **Error Constructors**: `ErrSyntax()`, `ErrUnclosedTag()`, `ErrUndefinedField()`, etc.
 
 ### Internal Packages
 - `internal/contenttypes/` - Manages `[Content_Types].xml` for added media

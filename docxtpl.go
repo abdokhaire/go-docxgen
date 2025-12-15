@@ -8,7 +8,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/fumiama/go-docx"
+	"github.com/abdokhaire/go-docxgen/internal/docx"
 	"github.com/abdokhaire/go-docxgen/internal/contenttypes"
 	"github.com/abdokhaire/go-docxgen/internal/headerfooter"
 	"github.com/abdokhaire/go-docxgen/internal/hyperlinks"

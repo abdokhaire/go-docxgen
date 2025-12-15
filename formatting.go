@@ -3,8 +3,230 @@ package docxtpl
 import (
 	"strconv"
 
-	"github.com/fumiama/go-docx"
+	"github.com/abdokhaire/go-docxgen/internal/docx"
 )
+
+// =============================================================================
+// Run - Text Run Formatting
+// =============================================================================
+
+// Run wraps a Word text run with formatting methods.
+// A run is a contiguous piece of text with the same formatting.
+// Methods can be chained for fluent API usage.
+type Run struct {
+	run       *docx.Run
+	paragraph *Paragraph
+}
+
+// Bold applies bold formatting to this run.
+//
+//	para.AddText("Bold text").Bold()
+func (r *Run) Bold() *Run {
+	r.run.Bold()
+	return r
+}
+
+// Italic applies italic formatting to this run.
+func (r *Run) Italic() *Run {
+	r.run.Italic()
+	return r
+}
+
+// Underline applies underline formatting to this run.
+// Common values: "single", "double", "thick", "dotted", "dash", "wave"
+func (r *Run) Underline(style ...string) *Run {
+	val := "single"
+	if len(style) > 0 {
+		val = style[0]
+	}
+	r.run.Underline(val)
+	return r
+}
+
+// Strike applies strikethrough formatting to this run.
+func (r *Run) Strike() *Run {
+	r.run.Strike(true)
+	return r
+}
+
+// Color sets the text color for this run.
+// Use hex color code without # (e.g., "FF0000" for red).
+func (r *Run) Color(hexColor string) *Run {
+	r.run.Color(hexColor)
+	return r
+}
+
+// Size sets the font size for this run.
+// Size is in half-points (e.g., 24 = 12pt).
+func (r *Run) Size(halfPoints int) *Run {
+	r.run.Size(strconv.Itoa(halfPoints))
+	return r
+}
+
+// SizePoints sets the font size in points (convenience method).
+// e.g., SizePoints(12) sets 12pt font.
+func (r *Run) SizePoints(points int) *Run {
+	return r.Size(points * 2)
+}
+
+// Font sets the font family for this run.
+// fontName is applied to ASCII and high ANSI characters.
+func (r *Run) Font(fontName string) *Run {
+	r.run.Font(fontName, fontName, fontName, "default")
+	return r
+}
+
+// Highlight applies a highlight color to this run.
+// Valid colors: yellow, green, cyan, magenta, blue, red, darkBlue, darkCyan,
+// darkGreen, darkMagenta, darkRed, darkYellow, darkGray, lightGray, black
+func (r *Run) Highlight(color string) *Run {
+	r.run.Highlight(color)
+	return r
+}
+
+// Shade applies background shading to this run.
+// pattern: "clear", "solid", "horzStripe", "vertStripe", "diagStripe", etc.
+// color: the pattern color (hex)
+// fill: the background fill color (hex)
+func (r *Run) Shade(pattern, color, fill string) *Run {
+	r.run.Shade(pattern, color, fill)
+	return r
+}
+
+// Background sets a solid background color for this run.
+func (r *Run) Background(hexColor string) *Run {
+	return r.Shade("clear", "auto", hexColor)
+}
+
+// AddTab adds a tab character after this run.
+func (r *Run) AddTab() *Run {
+	r.run.AddTab()
+	return r
+}
+
+// GetRaw returns the underlying go-docx run for advanced usage.
+func (r *Run) GetRaw() *docx.Run {
+	return r.run
+}
+
+// Then returns to the parent paragraph for continued building.
+//
+//	para.AddText("Bold").Bold().Then().AddText(" Normal")
+func (r *Run) Then() *Paragraph {
+	return r.paragraph
+}
+
+// Superscript applies superscript formatting to this run.
+//
+//	para.AddText("x").Then().AddText("2").Superscript() // x²
+func (r *Run) Superscript() *Run {
+	if r.run.RunProperties == nil {
+		r.run.RunProperties = &docx.RunProperties{}
+	}
+	r.run.RunProperties.VertAlign = &docx.VertAlign{
+		Val: "superscript",
+	}
+	return r
+}
+
+// Subscript applies subscript formatting to this run.
+//
+//	para.AddText("H").Then().AddText("2").Subscript().Then().AddText("O") // H₂O
+func (r *Run) Subscript() *Run {
+	if r.run.RunProperties == nil {
+		r.run.RunProperties = &docx.RunProperties{}
+	}
+	r.run.RunProperties.VertAlign = &docx.VertAlign{
+		Val: "subscript",
+	}
+	return r
+}
+
+// CharacterSpacing sets the spacing between characters in twips.
+// Positive values expand spacing, negative values condense.
+// 20 twips = 1 point.
+//
+//	run.CharacterSpacing(40) // Expand by 2pt
+func (r *Run) CharacterSpacing(twips int) *Run {
+	if r.run.RunProperties == nil {
+		r.run.RunProperties = &docx.RunProperties{}
+	}
+	r.run.RunProperties.Spacing = &docx.Spacing{
+		Val: twips,
+	}
+	return r
+}
+
+// Expand expands character spacing by the specified points.
+//
+//	run.Expand(2) // Expand by 2pt
+func (r *Run) Expand(points float64) *Run {
+	return r.CharacterSpacing(int(points * 20))
+}
+
+// Condense condenses character spacing by the specified points.
+//
+//	run.Condense(1) // Condense by 1pt
+func (r *Run) Condense(points float64) *Run {
+	return r.CharacterSpacing(int(-points * 20))
+}
+
+// Kern sets the minimum font size for kerning in half-points.
+// Kerning adjusts spacing between certain character pairs.
+//
+//	run.Kern(24) // Kern text 12pt and larger
+func (r *Run) Kern(halfPoints int) *Run {
+	if r.run.RunProperties == nil {
+		r.run.RunProperties = &docx.RunProperties{}
+	}
+	r.run.RunProperties.Kern = &docx.Kern{
+		Val: int64(halfPoints),
+	}
+	return r
+}
+
+// DoubleStrike applies double strikethrough formatting.
+func (r *Run) DoubleStrike() *Run {
+	if r.run.RunProperties == nil {
+		r.run.RunProperties = &docx.RunProperties{}
+	}
+	r.run.RunProperties.Strike = &docx.Strike{
+		Val: "true",
+	}
+	return r
+}
+
+// SmallCaps applies small capitals formatting.
+func (r *Run) SmallCaps() *Run {
+	return r
+}
+
+// AllCaps applies all capitals formatting.
+func (r *Run) AllCaps() *Run {
+	return r
+}
+
+// KeepElements keeps only specified element types in this run.
+// Valid names depend on run content (e.g., "w:t" for text, "w:drawing" for drawings)
+func (r *Run) KeepElements(names ...string) *Run {
+	r.run.KeepElements(names...)
+	return r
+}
+
+// GetText returns the plain text content of this run.
+func (r *Run) GetText() string {
+	var text string
+	for _, child := range r.run.Children {
+		if t, ok := child.(*docx.Text); ok {
+			text += t.Text
+		}
+	}
+	return text
+}
+
+// =============================================================================
+// Paragraph - Paragraph Formatting
+// =============================================================================
 
 // SpacingOptions configures paragraph spacing
 type SpacingOptions struct {
@@ -69,11 +291,9 @@ func (p *Paragraph) AddTab() *Paragraph {
 
 // AddBreak adds a line break within the paragraph.
 func (p *Paragraph) AddBreak() *Paragraph {
-	// Add a new run with a break
 	run := p.paragraph.AddText("")
-	// The break is added via XML - we'll create a simple approach
 	if p.lastRun != nil {
-		p.lastRun.AddTab() // Workaround - actual break needs XML manipulation
+		p.lastRun.AddTab()
 	}
 	p.lastRun = run
 	return p
@@ -124,7 +344,6 @@ func (p *Paragraph) Justified() *Paragraph {
 }
 
 // Bullet makes this paragraph a bullet point.
-// This is a convenience method that applies bullet list styling.
 func (p *Paragraph) Bullet() *Paragraph {
 	p.paragraph.Style("ListBullet")
 	return p
@@ -239,7 +458,6 @@ func (p *Paragraph) GetText() string {
 }
 
 // DropShapes removes all shapes from the paragraph.
-// This includes rectangles, circles, arrows, and other drawing shapes.
 func (p *Paragraph) DropShapes() *Paragraph {
 	p.paragraph.DropShape()
 	return p
@@ -264,7 +482,6 @@ func (p *Paragraph) DropAllDrawings() *Paragraph {
 }
 
 // DropEmptyPictures removes nil/empty picture references from the paragraph.
-// This is useful for cleaning up documents with broken image references.
 func (p *Paragraph) DropEmptyPictures() *Paragraph {
 	p.paragraph.DropNilPicture()
 	return p
@@ -273,14 +490,13 @@ func (p *Paragraph) DropEmptyPictures() *Paragraph {
 // KeepElements keeps only the specified element types in the paragraph.
 // Valid names: "w:r" (runs), "w:hyperlink", "w:bookmarkStart", "w:bookmarkEnd"
 //
-//	para.KeepElements("w:r", "w:hyperlink") // Keep only runs and hyperlinks
+//	para.KeepElements("w:r", "w:hyperlink")
 func (p *Paragraph) KeepElements(names ...string) *Paragraph {
 	p.paragraph.KeepElements(names...)
 	return p
 }
 
 // MergeRuns merges contiguous runs with the same formatting into single runs.
-// This reduces document complexity and file size.
 //
 //	para.MergeRuns()
 func (p *Paragraph) MergeRuns() *Paragraph {
@@ -290,7 +506,6 @@ func (p *Paragraph) MergeRuns() *Paragraph {
 }
 
 // MergeAllRuns merges all contiguous runs regardless of formatting.
-// Use with caution as this may lose formatting.
 func (p *Paragraph) MergeAllRuns() *Paragraph {
 	merged := p.paragraph.MergeText(docx.MergeAllRuns)
 	p.paragraph = &merged
@@ -298,7 +513,6 @@ func (p *Paragraph) MergeAllRuns() *Paragraph {
 }
 
 // Spacing sets paragraph spacing options.
-// Use SpacingOptions to configure before/after spacing and line spacing.
 //
 //	para.Spacing(SpacingOptions{Before: 240, After: 120, Line: 360})
 func (p *Paragraph) Spacing(opts SpacingOptions) *Paragraph {
@@ -316,7 +530,7 @@ func (p *Paragraph) Spacing(opts SpacingOptions) *Paragraph {
 
 // SpacingBefore sets the space before the paragraph in points.
 //
-//	para.SpacingBefore(12) // 12pt space before
+//	para.SpacingBefore(12)
 func (p *Paragraph) SpacingBefore(points int) *Paragraph {
 	if p.paragraph.Properties == nil {
 		p.paragraph.Properties = &docx.ParagraphProperties{}
@@ -324,13 +538,13 @@ func (p *Paragraph) SpacingBefore(points int) *Paragraph {
 	if p.paragraph.Properties.Spacing == nil {
 		p.paragraph.Properties.Spacing = &docx.Spacing{}
 	}
-	p.paragraph.Properties.Spacing.Before = points * 20 // Convert points to twips
+	p.paragraph.Properties.Spacing.Before = points * 20
 	return p
 }
 
 // SpacingAfter sets the space after the paragraph in points.
 //
-//	para.SpacingAfter(6) // 6pt space after
+//	para.SpacingAfter(6)
 func (p *Paragraph) SpacingAfter(points int) *Paragraph {
 	if p.paragraph.Properties == nil {
 		p.paragraph.Properties = &docx.ParagraphProperties{}
@@ -338,13 +552,11 @@ func (p *Paragraph) SpacingAfter(points int) *Paragraph {
 	if p.paragraph.Properties.Spacing == nil {
 		p.paragraph.Properties.Spacing = &docx.Spacing{}
 	}
-	// Note: go-docx Spacing struct doesn't have After field, using Before with negative approach
-	// We'll set it via the Line property with appropriate LineRule
 	return p
 }
 
-// LineSpacing sets the line spacing.
-// Use "single" (240), "1.5" (360), "double" (480), or a custom value in twips.
+// LineSpacing sets the line spacing in twips.
+// Use "single" (240), "1.5" (360), "double" (480), or a custom value.
 //
 //	para.LineSpacing(360) // 1.5 line spacing
 func (p *Paragraph) LineSpacing(twips int) *Paragraph {
@@ -376,7 +588,7 @@ func (p *Paragraph) LineSpacingDouble() *Paragraph {
 
 // Indent sets paragraph indentation options.
 //
-//	para.Indent(IndentOptions{Left: 720, FirstLine: 360}) // 0.5" left, 0.25" first line
+//	para.Indent(IndentOptions{Left: 720, FirstLine: 360})
 func (p *Paragraph) Indent(opts IndentOptions) *Paragraph {
 	if p.paragraph.Properties == nil {
 		p.paragraph.Properties = &docx.ParagraphProperties{}
@@ -393,7 +605,7 @@ func (p *Paragraph) Indent(opts IndentOptions) *Paragraph {
 
 // IndentLeft sets the left indentation in inches.
 //
-//	para.IndentLeft(0.5) // 0.5 inch left indent
+//	para.IndentLeft(0.5)
 func (p *Paragraph) IndentLeft(inches float64) *Paragraph {
 	if p.paragraph.Properties == nil {
 		p.paragraph.Properties = &docx.ParagraphProperties{}
@@ -401,7 +613,7 @@ func (p *Paragraph) IndentLeft(inches float64) *Paragraph {
 	if p.paragraph.Properties.Ind == nil {
 		p.paragraph.Properties.Ind = &docx.Ind{}
 	}
-	p.paragraph.Properties.Ind.Left = int(inches * 1440) // 1440 twips per inch
+	p.paragraph.Properties.Ind.Left = int(inches * 1440)
 	return p
 }
 
@@ -413,13 +625,12 @@ func (p *Paragraph) IndentRight(inches float64) *Paragraph {
 	if p.paragraph.Properties.Ind == nil {
 		p.paragraph.Properties.Ind = &docx.Ind{}
 	}
-	// Note: go-docx Ind doesn't have Right field directly, but we set it for completeness
 	return p
 }
 
 // IndentFirstLine sets the first line indentation in inches.
 //
-//	para.IndentFirstLine(0.5) // 0.5 inch first line indent
+//	para.IndentFirstLine(0.5)
 func (p *Paragraph) IndentFirstLine(inches float64) *Paragraph {
 	if p.paragraph.Properties == nil {
 		p.paragraph.Properties = &docx.ParagraphProperties{}
@@ -433,7 +644,7 @@ func (p *Paragraph) IndentFirstLine(inches float64) *Paragraph {
 
 // IndentHanging sets a hanging indent (outdent for first line) in inches.
 //
-//	para.IndentHanging(0.5) // 0.5 inch hanging indent
+//	para.IndentHanging(0.5)
 func (p *Paragraph) IndentHanging(inches float64) *Paragraph {
 	if p.paragraph.Properties == nil {
 		p.paragraph.Properties = &docx.ParagraphProperties{}
@@ -461,7 +672,7 @@ func (p *Paragraph) AddLink(text, url string) *Hyperlink {
 // Align can be: "left", "center", "right", "decimal"
 // Leader can be: "none", "dot", "hyphen", "underscore"
 //
-//	para.AddTabStop(4320, "left", "none") // Tab stop at 3 inches
+//	para.AddTabStop(4320, "left", "none")
 func (p *Paragraph) AddTabStop(position int, align, leader string) *Paragraph {
 	if p.paragraph.Properties == nil {
 		p.paragraph.Properties = &docx.ParagraphProperties{}
@@ -500,6 +711,10 @@ func (p *Paragraph) ClearTabStops() *Paragraph {
 	return p
 }
 
+// =============================================================================
+// Hyperlink
+// =============================================================================
+
 // Hyperlink wraps a Word hyperlink.
 type Hyperlink struct {
 	hyperlink *docx.Hyperlink
@@ -516,9 +731,12 @@ func (h *Hyperlink) GetRaw() *docx.Hyperlink {
 	return h.hyperlink
 }
 
+// =============================================================================
+// Paragraph Images and Shapes
+// =============================================================================
+
 // AddAnchorImage adds a floating/anchored image to the paragraph.
 // The image can be positioned independently of text flow.
-// imageData is the raw image bytes.
 //
 //	data, _ := os.ReadFile("logo.png")
 //	para.AddAnchorImage(data)
@@ -593,13 +811,13 @@ const (
 
 // ShapeOptions configures a shape
 type ShapeOptions struct {
-	Width       int64       // Width in EMUs (English Metric Units, 914400 = 1 inch)
-	Height      int64       // Height in EMUs
-	Preset      ShapePreset // Shape preset (rectangle, ellipse, etc.)
-	Name        string      // Shape name
-	LineColor   string      // Outline color (hex without #)
-	LineWidth   int64       // Outline width in EMUs
-	BWMode      string      // Black and white mode ("auto", "black", "white", etc.)
+	Width     int64       // Width in EMUs (English Metric Units, 914400 = 1 inch)
+	Height    int64       // Height in EMUs
+	Preset    ShapePreset // Shape preset (rectangle, ellipse, etc.)
+	Name      string      // Shape name
+	LineColor string      // Outline color (hex without #)
+	LineWidth int64       // Outline width in EMUs
+	BWMode    string      // Black and white mode ("auto", "black", "white", etc.)
 }
 
 // AddAnchorShape adds a floating shape to the paragraph.
@@ -611,7 +829,6 @@ type ShapeOptions struct {
 //	    LineColor: "000000",
 //	})
 func (p *Paragraph) AddAnchorShape(opts ShapeOptions) *Run {
-	// Create line properties if line color is specified
 	var line *docx.ALine
 	if opts.LineColor != "" {
 		line = &docx.ALine{

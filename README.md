@@ -690,6 +690,8 @@ Example template files are also available in the [test/testdata/templates](https
 ## Acknowledgements
 
 - [go-docx](https://github.com/fumiama/go-docx) by [fumiama](https://github.com/fumiama) - XML parsing and DOCX structure handling
+- [go-docx-template](https://github.com/tomwatkins1994/go-docx-template) by [tomwatkins1994](https://github.com/tomwatkins1994) - Template merging approach and tag fragmentation handling
+- [go-docx](https://github.com/lukasjarosch/go-docx) by [lukasjarosch](https://github.com/lukasjarosch) - Document manipulation concepts
 - [python-docx-template](https://github.com/elapouya/python-docx-template) by [elapouya](https://github.com/elapouya) - Inspiration for the template approach
 
 ## License

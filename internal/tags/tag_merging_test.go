@@ -3,7 +3,7 @@ package tags
 import (
 	"testing"
 
-	"github.com/fumiama/go-docx"
+	"github.com/abdokhaire/go-docxgen/internal/docx"
 	"github.com/stretchr/testify/assert"
 )
 

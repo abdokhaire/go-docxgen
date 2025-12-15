@@ -3,7 +3,7 @@ package tags
 import (
 	"sync"
 
-	"github.com/fumiama/go-docx"
+	"github.com/abdokhaire/go-docxgen/internal/docx"
 )
 
 func MergeTags(items []any) {

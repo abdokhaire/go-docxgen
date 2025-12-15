@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/bep/imagemeta"
-	"github.com/fumiama/go-docx"
+	"github.com/abdokhaire/go-docxgen/internal/docx"
 	"github.com/fumiama/imgsz"
 	"github.com/abdokhaire/go-docxgen/internal/contenttypes"
 	"github.com/abdokhaire/go-docxgen/internal/templatedata"

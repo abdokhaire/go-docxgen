@@ -6,14 +6,11 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/bep/imagemeta v0.8.1
 	github.com/dlclark/regexp2 v1.11.4
-	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
 	github.com/fumiama/imgsz v0.0.2
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/image v0.21.0
 	golang.org/x/text v0.19.0
 )
-
-replace github.com/fumiama/go-docx => ./pkg/go-docx
 
 require (
 	dario.cat/mergo v1.0.1 // indirect

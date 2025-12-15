@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/abdokhaire/go-docxgen"
+	docxtpl "github.com/abdokhaire/go-docxgen"
 )
 
 func main() {
@@ -116,6 +116,5 @@ func generateTestData() map[string]any {
 				},
 			},
 		},
-		"isVerified": true,
 	}
 }
