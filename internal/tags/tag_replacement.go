@@ -16,7 +16,9 @@ func ReplaceTagsInXml(xmlString string, data map[string]any, funcMap template.Fu
 		return "", err
 	}
 
-	tmpl, err := template.New("").Funcs(funcMap).Parse(preparedXmlString)
+	// Use missingkey=zero to output empty strings for missing/nil fields instead of "<no value>"
+	// which would break XML parsing (unescaped < and > characters)
+	tmpl, err := template.New("").Option("missingkey=zero").Funcs(funcMap).Parse(preparedXmlString)
 	if err != nil {
 		return "", fmt.Errorf("error parsing template: %v", err)
 	}
@@ -41,7 +43,8 @@ func ReplaceTagsInText(text string, data map[string]any, funcMap template.FuncMa
 		return text, nil
 	}
 
-	tmpl, err := template.New("").Funcs(funcMap).Parse(text)
+	// Use missingkey=zero for consistency with XML processing
+	tmpl, err := template.New("").Option("missingkey=zero").Funcs(funcMap).Parse(text)
 	if err != nil {
 		return "", fmt.Errorf("error parsing template: %v", err)
 	}
