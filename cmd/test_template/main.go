@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Masterminds/sprig/v3"
+	"github.com/go-sprout/sprout"
+	"github.com/go-sprout/sprout/group/hermetic"
 	docxtpl "github.com/abdokhaire/go-docxgen"
 )
 
@@ -30,9 +31,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Register Sprig functions
-	fmt.Println("Registering Sprig functions...")
-	doc.RegisterFuncMap(sprig.FuncMap())
+	// Register Sprout functions
+	fmt.Println("Registering Sprout functions...")
+	handler := sprout.New()
+	handler.AddGroups(hermetic.RegistryGroup())
+	doc.RegisterFuncMap(handler.Build())
 
 	// Get placeholders
 	placeholders, err := doc.GetPlaceholders()
