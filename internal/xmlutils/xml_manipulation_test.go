@@ -71,12 +71,27 @@ func TestFixXmlIssuesPostTagReplacement(t *testing.T) {
 			inputXml:          "<w:t><w:drawing>...</w:drawing></w:t>",
 			expectedOutputXml: "<w:drawing>...</w:drawing>",
 		},
+		{
+			name:              "Remove <nil> from text",
+			inputXml:          "<w:t>Hello <nil> World</w:t>",
+			expectedOutputXml: "<w:t>Hello  World</w:t>",
+		},
+		{
+			name:              "Remove standalone <nil>",
+			inputXml:          "<w:t><nil></w:t>",
+			expectedOutputXml: "", // empty <w:t> tags are also removed
+		},
+		{
+			name:              "Remove <no value> from text",
+			inputXml:          "<w:t>Name: <no value></w:t>",
+			expectedOutputXml: "<w:t>Name: </w:t>",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			outputXml := FixXmlIssuesPostTagReplacement(tt.inputXml)
-			assert.Equal(t, outputXml, tt.expectedOutputXml)
+			assert.Equal(t, tt.expectedOutputXml, outputXml)
 		})
 	}
 }

@@ -247,6 +247,11 @@ func FixXmlIssuesPostTagReplacement(xmlString string) string {
 	// Note: missingkey=zero only handles missing map keys, not nil field access or chained nil access
 	xmlString = strings.ReplaceAll(xmlString, "<no value>", "")
 
+	// CRITICAL: Replace "<nil>" which Go templates output for nil interface{} values
+	// This happens when accessing missing map keys (missingkey=zero returns nil for interface{} maps)
+	// or when a value is explicitly nil in the data
+	xmlString = strings.ReplaceAll(xmlString, "<nil>", "")
+
 	// Fix issues with drawings in text nodes
 	xmlString = strings.ReplaceAll(xmlString, "<w:t><w:drawing>", "<w:drawing>")
 	xmlString = strings.ReplaceAll(xmlString, "</w:drawing></w:t>", "</w:drawing>")
