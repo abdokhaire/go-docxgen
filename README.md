@@ -11,12 +11,11 @@ A Go library for generating DOCX documents from templates using Go's `text/templ
 - **Programmatic Document Creation** - Build documents from scratch with fluent API
 - **Handles Fragmented Tags** - Automatically merges tags split across XML runs by Word's editing
 - **Inline Images** - Insert images dynamically with automatic sizing and DPI detection
-- **80+ Built-in Functions** - Text formatting, math, dates, collections, and more
-- **Custom Functions** - Register your own template functions
+- **Extensible Functions** - Register custom functions or use community libraries like Sprig/Sprout
 - **Full Document Support** - Headers, footers, footnotes, endnotes, and document properties
 - **Document Properties** - Get/set title, author, subject, keywords, and more
 - **Watermarks** - Extract and replace watermark text (supports template syntax)
-- **Flexible Data Types** - Structs, maps, slices, pointers, and nested structures
+- **Flexible Data Types** - Structs, maps, slices, pointers, nested structures, and graceful nil handling
 
 ## Installation
 
@@ -159,81 +158,131 @@ Use standard Go `text/template` syntax in your DOCX files:
 | `{{.Nested.Field}}` | Nested struct/map | `{{.Person.Address.City}}` |
 | `{{if .Condition}}...{{end}}` | Conditional | `{{if .Active}}Active{{end}}` |
 | `{{range .Items}}...{{end}}` | Loop | `{{range .Products}}{{.Name}}{{end}}` |
-| `{{.Field \| function}}` | Pipe to function | `{{.Name \| upper}}` |
-| `{{function .Args}}` | Function call | `{{formatMoney .Price "$"}}` |
+| `{{.Field \| function}}` | Pipe to function | `{{.Name \| upper}}` (requires registered function) |
+| `{{function .Args}}` | Function call | `{{greet .Name}}` (requires registered function) |
 
-## Built-in Functions
+## Template Functions
 
-### Text Formatting
-| Function | Example | Result |
-|----------|---------|--------|
-| `upper` | `{{.Name \| upper}}` | JOHN |
-| `lower` | `{{.Name \| lower}}` | john |
-| `title` | `{{.Name \| title}}` | John Doe |
-| `bold` | `{{bold .Name}}` | **John** |
-| `italic` | `{{italic .Name}}` | *John* |
-| `underline` | `{{underline .Name}}` | Underlined |
-| `strikethrough` | `{{strikethrough .Name}}` | ~~Strikethrough~~ |
-| `color` | `{{color "FF0000" .Name}}` | Red text |
-| `highlight` | `{{highlight "yellow" .Name}}` | Highlighted |
-| `bgColor` | `{{bgColor "FFFF00" .Name}}` | Background color |
-| `fontSize` | `{{fontSize 28 .Name}}` | 14pt text |
-| `fontFamily` | `{{fontFamily "Arial" .Name}}` | Arial font |
-| `subscript` | `{{subscript "2"}}` | H₂O style |
-| `superscript` | `{{superscript "2"}}` | X² style |
-| `smallCaps` | `{{smallCaps .Name}}` | Small capitals |
-| `link` | `{{link "https://..." "Click"}}` | Hyperlink |
+This library provides a flexible function system. You can register your own custom functions or use popular community function libraries.
 
-### Numbers & Currency
-| Function | Example | Result |
-|----------|---------|--------|
-| `formatNumber` | `{{formatNumber 1234.5 2}}` | 1,234.50 |
-| `formatMoney` | `{{formatMoney 1234.5 "$"}}` | $1,234.50 |
-| `formatPercent` | `{{formatPercent 0.156 1}}` | 15.6% |
-| `add` | `{{add 1 2}}` | 3 |
-| `mul` | `{{mul .Price .Qty}}` | Product |
+### Built-in Function
 
-### Dates
+The library includes one built-in function:
+
 | Function | Example | Description |
 |----------|---------|-------------|
-| `now` | `{{now}}` | Current time |
-| `formatDate` | `{{formatDate .Date "Jan 2, 2006"}}` | Format date |
-| `addDays` | `{{addDays .Date 7}}` | Add days |
-| `addMonths` | `{{addMonths .Date 1}}` | Add months |
+| `link` | `{{link "https://example.com" "Click here"}}` | Create a clickable hyperlink |
 
-### Collections
-| Function | Example | Description |
-|----------|---------|-------------|
-| `len` | `{{len .Items}}` | Length |
-| `first` | `{{first .Items}}` | First element |
-| `last` | `{{last .Items}}` | Last element |
-| `join` | `{{join .Names ", "}}` | Join with separator |
-| `contains` | `{{if contains .Roles "admin"}}` | Check membership |
+### Registering Custom Functions
 
-### Comparison & Logic
-| Function | Example |
-|----------|---------|
-| `eq`, `ne` | `{{if eq .Status "active"}}` |
-| `lt`, `le`, `gt`, `ge` | `{{if gt .Count 0}}` |
-| `and`, `or`, `not` | `{{if and .A .B}}` |
+Register your own functions before rendering:
 
-### Utilities
-| Function | Example | Description |
-|----------|---------|-------------|
-| `default` | `{{default "N/A" .Name}}` | Default if empty |
-| `ternary` | `{{ternary "Yes" "No" .Active}}` | Conditional value |
-| `trim` | `{{trim .Text}}` | Trim whitespace |
-| `replace` | `{{replace .Text "old" "new"}}` | Replace all |
-| `truncate` | `{{truncate .Text 50}}` | Truncate with ellipsis |
-| `pluralize` | `{{pluralize 5 "item" "items"}}` | Singular/plural |
+```go
+doc, _ := docxtpl.ParseFromFilename("template.docx")
 
-### Document Structure
-| Function | Example | Description |
-|----------|---------|-------------|
-| `br` | `{{br}}` | Line break |
-| `tab` | `{{tab}}` | Tab character |
-| `pageBreak` | `{{pageBreak}}` | Page break |
-| `sectionBreak` | `{{sectionBreak}}` | Section break |
+// Simple function
+doc.RegisterFunction("greet", func(name string) string {
+    return "Hello, " + name + "!"
+})
+
+// Function with multiple parameters
+doc.RegisterFunction("formatPrice", func(price float64, currency string) string {
+    return fmt.Sprintf("%s%.2f", currency, price)
+})
+
+// Function for calculations
+doc.RegisterFunction("multiply", func(a, b float64) float64 {
+    return a * b
+})
+
+doc.Render(data)
+```
+
+**Template usage:**
+```
+{{greet .Name}}
+Price: {{formatPrice .Amount "$"}}
+Total: {{multiply .Price .Quantity}}
+```
+
+### Using Community Function Libraries
+
+For a rich set of template functions, use community libraries like **Sprig** or **Sprout**.
+
+#### Using Sprig (100+ functions)
+
+[Sprig](https://github.com/Masterminds/sprig) provides 100+ template functions for strings, math, dates, and more.
+
+```bash
+go get github.com/Masterminds/sprig/v3
+```
+
+```go
+import (
+    "github.com/Masterminds/sprig/v3"
+    docxtpl "github.com/abdokhaire/go-docxgen"
+)
+
+func main() {
+    doc, _ := docxtpl.ParseFromFilename("template.docx")
+
+    // Register all Sprig functions
+    doc.RegisterFuncMap(sprig.FuncMap())
+
+    doc.Render(data)
+    doc.SaveToFile("output.docx")
+}
+```
+
+**Template with Sprig functions:**
+```
+Name: {{.Name | upper}}
+Email: {{.Email | lower}}
+Date: {{now | date "2006-01-02"}}
+Total: {{.Items | len}} items
+Status: {{.IsActive | ternary "Active" "Inactive"}}
+```
+
+#### Using Sprout (Modern Sprig Alternative)
+
+[Sprout](https://github.com/go-sprout/sprout) is a modern, modular alternative to Sprig with better performance.
+
+```bash
+go get github.com/go-sprout/sprout
+```
+
+```go
+import (
+    "github.com/go-sprout/sprout"
+    docxtpl "github.com/abdokhaire/go-docxgen"
+)
+
+func main() {
+    doc, _ := docxtpl.ParseFromFilename("template.docx")
+
+    // Register Sprout functions
+    handler := sprout.New()
+    doc.RegisterFuncMap(handler.Build())
+
+    doc.Render(data)
+    doc.SaveToFile("output.docx")
+}
+```
+
+### Common Functions (via Sprig/Sprout)
+
+Once you register Sprig or Sprout, these functions become available:
+
+| Category | Functions |
+|----------|-----------|
+| **Strings** | `upper`, `lower`, `title`, `trim`, `replace`, `contains`, `hasPrefix`, `hasSuffix` |
+| **Math** | `add`, `sub`, `mul`, `div`, `mod`, `max`, `min`, `ceil`, `floor`, `round` |
+| **Dates** | `now`, `date`, `dateModify`, `toDate`, `dateInZone` |
+| **Lists** | `list`, `first`, `last`, `append`, `prepend`, `concat`, `join` |
+| **Logic** | `eq`, `ne`, `lt`, `le`, `gt`, `ge`, `and`, `or`, `not`, `default`, `ternary` |
+| **Encoding** | `b64enc`, `b64dec`, `toJson`, `fromJson` |
+
+See [Sprig documentation](http://masterminds.github.io/sprig/) or [Sprout documentation](https://docs.atom.codes/sprout) for the complete function reference.
 
 ## Inline Images
 
@@ -255,18 +304,6 @@ data := map[string]any{
 ```
 
 Supported formats: JPEG (.jpg, .jpeg) and PNG (.png)
-
-## Custom Functions
-
-Register custom template functions:
-
-```go
-doc.RegisterFunction("greet", func(name string) string {
-    return "Hello, " + name + "!"
-})
-```
-
-Then use in your template: `{{greet .Name}}`
 
 ## Working with Document Parts
 
@@ -365,29 +402,34 @@ Date: {{.Date}}
 
 | Item | Quantity | Price |
 |------|----------|-------|
-{{range .Items}}| {{.Name}} | {{.Qty}} | {{formatMoney .Price "$"}} |
+{{range .Items}}| | | |
+|------|----------|-------|
+{{.Name}} | {{.Qty}} | {{.PriceFormatted}} |
+|------|----------|-------|
 {{end}}
+|------|----------|-------|
 
-Total: {{formatMoney .Total "$"}}
+Total: {{.TotalFormatted}}
 ```
 
 **Code:**
 ```go
 type Item struct {
-    Name  string
-    Qty   int
-    Price float64
+    Name           string
+    Qty            int
+    Price          float64
+    PriceFormatted string
 }
 
 data := map[string]any{
     "InvoiceNumber": "INV-001",
     "Date":          "December 5, 2025",
     "Items": []Item{
-        {Name: "Widget A", Qty: 10, Price: 29.99},
-        {Name: "Widget B", Qty: 5, Price: 49.99},
-        {Name: "Service Fee", Qty: 1, Price: 100.00},
+        {Name: "Widget A", Qty: 10, Price: 29.99, PriceFormatted: "$29.99"},
+        {Name: "Widget B", Qty: 5, Price: 49.99, PriceFormatted: "$49.99"},
+        {Name: "Service Fee", Qty: 1, Price: 100.00, PriceFormatted: "$100.00"},
     },
-    "Total": 549.85,
+    "TotalFormatted": "$549.85",
 }
 
 doc.Render(data)
@@ -454,7 +496,9 @@ data := map[string]any{
 }
 ```
 
-### Using Built-in Functions
+### Using Sprig/Sprout Functions
+
+This example requires registering Sprig or Sprout functions first (see [Template Functions](#template-functions)).
 
 **Template:**
 ```
@@ -462,30 +506,42 @@ Name: {{.Name | upper}}
 Email: {{.Email | lower}}
 Title: {{.Title | title}}
 
-Joined: {{formatDate .JoinDate "January 2, 2006"}}
-Salary: {{formatMoney .Salary "$"}}
-Bonus: {{formatPercent .BonusRate 1}}
+Joined: {{.JoinDate | date "January 2, 2006"}}
+Salary: ${{.Salary | printf "%.2f"}}
+Bonus: {{.BonusRate | mul 100 | printf "%.1f"}}%
 
 Status: {{ternary "Active" "Inactive" .IsActive}}
 Department: {{default "Unassigned" .Department}}
 
-Tags: {{join .Tags ", "}}
+Tags: {{.Tags | join ", "}}
 ```
 
 **Code:**
 ```go
-import "time"
+import (
+    "time"
+    "github.com/Masterminds/sprig/v3"
+    docxtpl "github.com/abdokhaire/go-docxgen"
+)
 
-data := map[string]any{
-    "Name":       "john doe",
-    "Email":      "JOHN@EXAMPLE.COM",
-    "Title":      "senior developer",
-    "JoinDate":   time.Now(),
-    "Salary":     85000.00,
-    "BonusRate":  0.15,
-    "IsActive":   true,
-    "Department": "", // Will show "Unassigned"
-    "Tags":       []string{"golang", "backend", "api"},
+func main() {
+    doc, _ := docxtpl.ParseFromFilename("template.docx")
+    doc.RegisterFuncMap(sprig.FuncMap()) // Register Sprig functions
+
+    data := map[string]any{
+        "Name":       "john doe",
+        "Email":      "JOHN@EXAMPLE.COM",
+        "Title":      "senior developer",
+        "JoinDate":   time.Now(),
+        "Salary":     85000.00,
+        "BonusRate":  0.15,
+        "IsActive":   true,
+        "Department": "", // Will show "Unassigned"
+        "Tags":       []string{"golang", "backend", "api"},
+    }
+
+    doc.Render(data)
+    doc.SaveToFile("output.docx")
 }
 ```
 
@@ -663,9 +719,12 @@ func main() {
 ```
 
 **Corresponding Template (report_template.docx):**
+
+*Note: This template uses Sprig functions. Register them with `doc.RegisterFuncMap(sprig.FuncMap())`*
+
 ```
 {{.Title | upper}}
-Generated: {{formatDate .GeneratedAt "January 2, 2006"}}
+Generated: {{.GeneratedAt | date "January 2, 2006"}}
 Author: {{.Author}}
 
 {{if .IsFinalized}}✓ FINALIZED{{else}}DRAFT{{end}}
@@ -675,11 +734,11 @@ EMPLOYEE ROSTER
 ━━━━━━━━━━━━━━━━━━━━
 Name: {{.Name}}
 Department: {{.Department}}
-Salary: {{formatMoney .Salary "$"}}
+Salary: ${{.Salary | printf "%.2f"}}
 {{.Photo}}
 {{end}}
 
-Total Budget: {{formatMoney .TotalBudget "$"}}
+Total Budget: ${{.TotalBudget | printf "%.2f"}}
 Employee Count: {{len .Employees}}
 ```
 

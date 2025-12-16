@@ -117,7 +117,7 @@ Get and set document metadata:
 2. **Data Processing** (`internal/templatedata/`): Converts structs to maps, handles pointers, nested structs, slices of any type (`[]string`, `[]int`, `[]*Struct`), maps with various key types, XML-escapes string values, detects image file paths
 3. **Tag Replacement** (`internal/tags/tag_replacement.go`): Uses Go's `text/template` to execute template against prepared XML
 4. **Processable Files** (`internal/headerfooter/`): Extracts and processes headers (`word/header*.xml`), footers (`word/footer*.xml`), footnotes (`word/footnotes.xml`), endnotes (`word/endnotes.xml`), and document properties (`docProps/core.xml`, `docProps/app.xml`). Also handles watermark extraction/replacement via VML `<v:textpath string="...">` elements. Watermarks support Go template syntax (e.g., `{{.Status}}`)
-5. **XML Utilities** (`internal/xmlutils/`): Pre-processes XML for template compatibility, `MergeFragmentedTagsInXml` handles fragmented tags in raw XML strings, converts newlines to `<w:br/>` line breaks, fixes issues post-replacement
+5. **XML Utilities** (`internal/xmlutils/`): Pre-processes XML for template compatibility, `MergeFragmentedTagsInXml` handles fragmented tags in raw XML strings, converts newlines to `<w:br/>` line breaks, fixes issues post-replacement (including replacing `<no value>` and `<nil>` template outputs with empty strings)
 
 ### Supported Data Types
 The library supports all common Go data types in templates:
@@ -126,7 +126,7 @@ The library supports all common Go data types in templates:
 - **Pointers**: `*string`, `*Struct` - automatically dereferenced
 - **Slices**: `[]string`, `[]int`, `[]Struct`, `[]*Struct`
 - **Maps**: `map[string]any`, `map[string]string`, etc.
-- **Nil values**: Nil pointers are handled gracefully
+- **Nil values**: Nil pointers and nil interface values are handled gracefully (output empty string instead of `<nil>` or `<no value>`)
 
 ### Inline Images (`image.go`)
 - `CreateInlineImage(filepath)` - Load image from file path
@@ -135,124 +135,30 @@ The library supports all common Go data types in templates:
 - Supports JPEG (.jpg, .jpeg) and PNG formats
 - Reads EXIF data for proper DPI/sizing (defaults to 72 DPI)
 
-### Custom Functions (`functions.go`)
+### Template Functions (`functions.go`)
 - Register via `doc.RegisterFunction(name, fn)` - validates function signature
+- Register function libraries via `doc.RegisterFuncMap(funcMap)` - for Sprig/Sprout integration
 
-**Built-in Functions:**
-
-*Text Formatting:*
+**Built-in Function:**
 | Function | Usage | Description |
 |----------|-------|-------------|
-| `upper` | `{{.Name \| upper}}` | Uppercase text |
-| `lower` | `{{.Name \| lower}}` | Lowercase text |
-| `title` | `{{.Name \| title}}` | Title case text |
-| `bold` | `{{bold .Name}}` | Bold formatting |
-| `italic` | `{{italic .Name}}` | Italic formatting |
-| `underline` | `{{underline .Name}}` | Underline formatting |
-| `strikethrough` | `{{strikethrough .Name}}` | Strikethrough formatting |
-| `doubleStrike` | `{{doubleStrike .Name}}` | Double strikethrough |
-| `color` | `{{color "FF0000" .Name}}` | Colored text (hex) |
-| `highlight` | `{{highlight "yellow" .Name}}` | Highlighted text |
-| `bgColor` | `{{bgColor "FFFF00" .Name}}` | Background color |
-| `fontSize` | `{{fontSize 28 .Name}}` | Font size (half-points) |
-| `fontFamily` | `{{fontFamily "Arial" .Name}}` | Font family |
-| `font` | `{{font "Arial" 24 "FF0000" .Name}}` | Combined font settings |
-| `subscript` | `{{subscript .Name}}` | Subscript text |
-| `superscript` | `{{superscript .Name}}` | Superscript text |
-| `smallCaps` | `{{smallCaps .Name}}` | Small capitals |
-| `allCaps` | `{{allCaps .Name}}` | All capitals |
-| `shadow` | `{{shadow .Name}}` | Shadow effect |
-| `outline` | `{{outline .Name}}` | Outline effect |
-| `emboss` | `{{emboss .Name}}` | Emboss effect |
-| `imprint` | `{{imprint .Name}}` | Imprint/engrave effect |
-| `link` | `{{link "https://..." "Click"}}` | Hyperlink |
-| `br` | `{{br}}` | Line break |
-| `tab` | `{{tab}}` | Tab character |
+| `link` | `{{link "https://..." "Click"}}` | Create clickable hyperlink |
 
-*Comparison:*
+**Go Template Built-ins** (always available):
 | Function | Usage | Description |
 |----------|-------|-------------|
-| `eq` | `{{if eq .Status "active"}}` | Equal |
-| `ne` | `{{if ne .Status "deleted"}}` | Not equal |
-| `lt` | `{{if lt .Count 10}}` | Less than |
-| `le` | `{{if le .Count 10}}` | Less than or equal |
-| `gt` | `{{if gt .Count 0}}` | Greater than |
-| `ge` | `{{if ge .Count 1}}` | Greater than or equal |
-
-*Logical:*
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `and` | `{{if and .A .B}}` | All args truthy |
-| `or` | `{{if or .A .B}}` | Any arg truthy |
-| `not` | `{{if not .Deleted}}` | Negation |
-
-*Collections:*
-| Function | Usage | Description |
-|----------|-------|-------------|
+| `and`, `or`, `not` | `{{if and .A .B}}` | Logical operations |
+| `eq`, `ne`, `lt`, `le`, `gt`, `ge` | `{{if eq .Status "active"}}` | Comparisons |
 | `len` | `{{len .Items}}` | Length of slice/map/string |
-| `first` | `{{first .Items}}` | First element |
-| `last` | `{{last .Items}}` | Last element |
 | `index` | `{{index .Items 0}}` | Element at index |
 | `slice` | `{{slice .Items 1 3}}` | Sub-slice |
-| `join` | `{{join .Names ", "}}` | Join with separator |
-| `contains` | `{{if contains .Roles "admin"}}` | Check membership |
+| `print`, `printf`, `println` | `{{printf "%.2f" .Price}}` | Formatted output |
 
-*Utilities:*
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `default` | `{{default "N/A" .Name}}` | Default if empty |
-| `coalesce` | `{{coalesce .Nick .Name "Anon"}}` | First non-empty |
-| `ternary` | `{{ternary "Yes" "No" .Active}}` | Conditional value |
-| `split` | `{{range split .Tags ","}}` | Split string |
-| `concat` | `{{concat .First " " .Last}}` | Concatenate |
-| `trim` | `{{trim .Text}}` | Trim whitespace |
-| `replace` | `{{replace .Text "old" "new"}}` | Replace all |
-| `repeat` | `{{repeat "-" 10}}` | Repeat string |
+**Community Function Libraries:**
+- [Sprig](https://github.com/Masterminds/sprig) - 100+ functions: `doc.RegisterFuncMap(sprig.FuncMap())`
+- [Sprout](https://github.com/go-sprout/sprout) - Modern alternative: `doc.RegisterFuncMap(sprout.New().Build())`
 
-*Math:*
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `add` | `{{add .A .B}}` | Addition |
-| `sub` | `{{sub .A .B}}` | Subtraction |
-| `mul` | `{{mul .Price .Qty}}` | Multiplication |
-| `div` | `{{div .Total .Count}}` | Division |
-| `mod` | `{{mod .Index 2}}` | Modulo |
-
-*Number Formatting:*
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `formatNumber` | `{{formatNumber 1234.5 2}}` | Format with commas (→ "1,234.50") |
-| `formatMoney` | `{{formatMoney 1234.5 "$"}}` | Currency format (→ "$1,234.50") |
-| `formatPercent` | `{{formatPercent 0.156 1}}` | Percentage (→ "15.6%") |
-
-*Date/Time:*
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `now` | `{{now}}` | Current time |
-| `formatDate` | `{{formatDate .Date "Jan 2, 2006"}}` | Format date |
-| `parseDate` | `{{parseDate "2024-01-15" "2006-01-02"}}` | Parse string to date |
-| `addDays` | `{{addDays .Date 7}}` | Add days to date |
-| `addMonths` | `{{addMonths .Date 1}}` | Add months to date |
-| `addYears` | `{{addYears .Date 1}}` | Add years to date |
-
-*Document Structure:*
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `pageBreak` | `{{pageBreak}}` | Insert page break |
-| `sectionBreak` | `{{sectionBreak}}` | Insert section break |
-| `link` | `{{link "https://..." "Click"}}` | Clickable hyperlink |
-
-*Additional Utilities:*
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `uuid` | `{{uuid}}` | Generate UUID |
-| `pluralize` | `{{pluralize 5 "item" "items"}}` | Singular/plural |
-| `truncate` | `{{truncate .Text 50}}` | Truncate with ellipsis |
-| `wordwrap` | `{{wordwrap .Text 80}}` | Wrap at width |
-| `capitalize` | `{{capitalize .name}}` | Capitalize first letter |
-| `camelCase` | `{{camelCase "hello world"}}` | → "helloWorld" |
-| `snakeCase` | `{{snakeCase "Hello World"}}` | → "hello_world" |
-| `kebabCase` | `{{kebabCase "Hello World"}}` | → "hello-world" |
+Functions like `upper`, `lower`, `title`, `default`, `ternary`, `join`, `add`, `mul`, `date`, etc. require registering Sprig or Sprout.
 
 ### Document Operations (`operations.go`)
 Batch processing and document manipulation:
@@ -283,19 +189,20 @@ Template validation and error handling:
 
 ### Internal Packages
 - `internal/contenttypes/` - Manages `[Content_Types].xml` for added media
-- `internal/functions/` - Function name/signature validation, default FuncMap (60+ functions)
+- `internal/functions/` - Function name/signature validation, empty DefaultFuncMap (users register functions via Sprig/Sprout)
 - `internal/headerfooter/` - Processable file extraction (headers, footers, footnotes, endnotes), watermark handling
 - `internal/hyperlinks/` - Hyperlink registry and relationship management for clickable links
 - `internal/tags/` - Tag detection (`tag_checking.go`), merging, and replacement
 - `internal/templatedata/` - Struct-to-map conversion, image path detection
-- `internal/xmlutils/` - XML escaping (including newline→line break), `MergeFragmentedTagsInXml`, manipulation helpers
+- `internal/xmlutils/` - XML escaping (including newline→line break), `MergeFragmentedTagsInXml`, manipulation helpers, post-processing to replace `<no value>` and `<nil>` with empty strings
 
 ## Template Syntax
 
 Uses standard Go `text/template` syntax in DOCX files:
 - Simple: `{{.FieldName}}`
 - Nested: `{{.Person.Name}}`
-- Functions: `{{.Name | upper}}`
+- Functions: `{{.Name | upper}}` (requires Sprig/Sprout registration)
+- Built-in functions: `{{printf "%.2f" .Price}}`, `{{len .Items}}`, `{{if eq .Status "active"}}`
 - Conditionals: `{{if .Show}}...{{end}}`
 - Loops: `{{range .Items}}...{{end}}`
 
