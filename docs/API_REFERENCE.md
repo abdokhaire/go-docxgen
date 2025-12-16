@@ -813,6 +813,40 @@ doc.Render(data)
 
 ---
 
+## Template Functions
+
+### Built-in Function
+
+The library includes one built-in function:
+
+| Function | Usage | Description |
+|----------|-------|-------------|
+| `link` | `{{link "https://example.com" "Click here"}}` | Create clickable hyperlink |
+
+### Go Template Built-ins (Always Available)
+
+These functions are provided by Go's `text/template` package:
+
+| Function | Usage | Description |
+|----------|-------|-------------|
+| `and` | `{{if and .A .B}}` | Logical AND |
+| `or` | `{{if or .A .B}}` | Logical OR |
+| `not` | `{{if not .A}}` | Logical NOT |
+| `eq` | `{{if eq .A .B}}` | Equal |
+| `ne` | `{{if ne .A .B}}` | Not equal |
+| `lt` | `{{if lt .A .B}}` | Less than |
+| `le` | `{{if le .A .B}}` | Less than or equal |
+| `gt` | `{{if gt .A .B}}` | Greater than |
+| `ge` | `{{if ge .A .B}}` | Greater than or equal |
+| `len` | `{{len .Items}}` | Length of slice/map/string |
+| `index` | `{{index .Items 0}}` | Element at index |
+| `slice` | `{{slice .Items 1 3}}` | Sub-slice |
+| `print` | `{{print .A .B}}` | Concatenate values |
+| `printf` | `{{printf "%.2f" .Price}}` | Formatted output |
+| `println` | `{{println .A}}` | Print with newline |
+
+---
+
 ## Custom Functions
 
 ### RegisterFunction
@@ -828,132 +862,88 @@ doc.RegisterFunction("currency", func(amount float64) string {
 })
 ```
 
+### RegisterFuncMap
+```go
+func (d *DocxTmpl) RegisterFuncMap(funcs template.FuncMap)
+```
+Register multiple functions at once. Useful for adding external function libraries.
+
+**Example:**
+```go
+doc.RegisterFuncMap(sprig.FuncMap())
+```
+
+### GetRegisteredFunctions
+```go
+func (d *DocxTmpl) GetRegisteredFunctions() *template.FuncMap
+```
+Get a copy of all registered functions.
+
 ---
 
-## Template Functions
+## Using Community Function Libraries
 
-### Text Formatting
+For a rich set of template functions, use community libraries like **Sprig** or **Sprout**.
 
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `upper` | `{{.Name \| upper}}` | Uppercase |
-| `lower` | `{{.Name \| lower}}` | Lowercase |
-| `title` | `{{.Name \| title}}` | Title case |
-| `bold` | `{{bold .Name}}` | Bold text |
-| `italic` | `{{italic .Name}}` | Italic text |
-| `underline` | `{{underline .Name}}` | Underlined text |
-| `strikethrough` | `{{strikethrough .Name}}` | Strikethrough |
-| `doubleStrike` | `{{doubleStrike .Name}}` | Double strikethrough |
-| `color` | `{{color "FF0000" .Name}}` | Colored text |
-| `highlight` | `{{highlight "yellow" .Name}}` | Highlighted text |
-| `bgColor` | `{{bgColor "FFFF00" .Name}}` | Background color |
-| `fontSize` | `{{fontSize 28 .Name}}` | Font size (half-points) |
-| `fontFamily` | `{{fontFamily "Arial" .Name}}` | Font family |
-| `font` | `{{font "Arial" 24 "FF0000" .Name}}` | Combined font settings |
-| `subscript` | `{{subscript .Name}}` | Subscript |
-| `superscript` | `{{superscript .Name}}` | Superscript |
-| `smallCaps` | `{{smallCaps .Name}}` | Small capitals |
-| `allCaps` | `{{allCaps .Name}}` | All capitals |
-| `shadow` | `{{shadow .Name}}` | Shadow effect |
-| `outline` | `{{outline .Name}}` | Outline effect |
-| `emboss` | `{{emboss .Name}}` | Emboss effect |
-| `imprint` | `{{imprint .Name}}` | Imprint effect |
+### Using Sprig (100+ functions)
 
-### Comparison
+[Sprig](https://github.com/Masterminds/sprig) provides 100+ template functions.
 
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `eq` | `{{if eq .A .B}}` | Equal |
-| `ne` | `{{if ne .A .B}}` | Not equal |
-| `lt` | `{{if lt .A .B}}` | Less than |
-| `le` | `{{if le .A .B}}` | Less than or equal |
-| `gt` | `{{if gt .A .B}}` | Greater than |
-| `ge` | `{{if ge .A .B}}` | Greater than or equal |
+```bash
+go get github.com/Masterminds/sprig/v3
+```
 
-### Logical
+```go
+import (
+    "github.com/Masterminds/sprig/v3"
+    docxtpl "github.com/abdokhaire/go-docxgen"
+)
 
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `and` | `{{if and .A .B}}` | All args truthy |
-| `or` | `{{if or .A .B}}` | Any arg truthy |
-| `not` | `{{if not .A}}` | Negation |
+func main() {
+    doc, _ := docxtpl.ParseFromFilename("template.docx")
+    doc.RegisterFuncMap(sprig.FuncMap())
+    doc.Render(data)
+    doc.SaveToFile("output.docx")
+}
+```
 
-### Collections
+### Using Sprout (Modern Alternative)
 
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `len` | `{{len .Items}}` | Length |
-| `first` | `{{first .Items}}` | First element |
-| `last` | `{{last .Items}}` | Last element |
-| `index` | `{{index .Items 0}}` | Element at index |
-| `slice` | `{{slice .Items 1 3}}` | Sub-slice |
-| `join` | `{{join .Names ", "}}` | Join with separator |
-| `contains` | `{{if contains .Roles "admin"}}` | Check membership |
+[Sprout](https://github.com/go-sprout/sprout) is a modern, modular alternative.
 
-### Math
+```bash
+go get github.com/go-sprout/sprout
+```
 
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `add` | `{{add .A .B}}` | Addition |
-| `sub` | `{{sub .A .B}}` | Subtraction |
-| `mul` | `{{mul .A .B}}` | Multiplication |
-| `div` | `{{div .A .B}}` | Division |
-| `mod` | `{{mod .A .B}}` | Modulo |
+```go
+import (
+    "github.com/go-sprout/sprout"
+    docxtpl "github.com/abdokhaire/go-docxgen"
+)
 
-### Number Formatting
+func main() {
+    doc, _ := docxtpl.ParseFromFilename("template.docx")
+    handler := sprout.New()
+    doc.RegisterFuncMap(handler.Build())
+    doc.Render(data)
+    doc.SaveToFile("output.docx")
+}
+```
 
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `formatNumber` | `{{formatNumber 1234.5 2}}` | Format with commas |
-| `formatMoney` | `{{formatMoney 1234.5 "$"}}` | Currency format |
-| `formatPercent` | `{{formatPercent 0.156 1}}` | Percentage |
+### Common Functions (via Sprig/Sprout)
 
-### Date/Time
+Once registered, these functions become available:
 
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `now` | `{{now}}` | Current time |
-| `formatDate` | `{{formatDate .Date "Jan 2, 2006"}}` | Format date |
-| `parseDate` | `{{parseDate "2024-01-15" "2006-01-02"}}` | Parse date |
-| `addDays` | `{{addDays .Date 7}}` | Add days |
-| `addMonths` | `{{addMonths .Date 1}}` | Add months |
-| `addYears` | `{{addYears .Date 1}}` | Add years |
+| Category | Functions |
+|----------|-----------|
+| **Strings** | `upper`, `lower`, `title`, `trim`, `replace`, `contains`, `hasPrefix`, `hasSuffix` |
+| **Math** | `add`, `sub`, `mul`, `div`, `mod`, `max`, `min`, `ceil`, `floor`, `round` |
+| **Dates** | `now`, `date`, `dateModify`, `toDate`, `dateInZone` |
+| **Lists** | `list`, `first`, `last`, `append`, `prepend`, `concat`, `join` |
+| **Logic** | `default`, `ternary`, `coalesce` |
+| **Encoding** | `b64enc`, `b64dec`, `toJson`, `fromJson` |
 
-### String Utilities
-
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `default` | `{{default "N/A" .Name}}` | Default if empty |
-| `coalesce` | `{{coalesce .A .B "default"}}` | First non-empty |
-| `ternary` | `{{ternary "Yes" "No" .Active}}` | Conditional |
-| `split` | `{{split .Text ","}}` | Split string |
-| `concat` | `{{concat .A " " .B}}` | Concatenate |
-| `trim` | `{{trim .Text}}` | Trim whitespace |
-| `replace` | `{{replace .Text "old" "new"}}` | Replace all |
-| `repeat` | `{{repeat "-" 10}}` | Repeat string |
-| `truncate` | `{{truncate .Text 50}}` | Truncate with ellipsis |
-| `wordwrap` | `{{wordwrap .Text 80}}` | Wrap at width |
-| `capitalize` | `{{capitalize .name}}` | Capitalize first |
-| `camelCase` | `{{camelCase "hello world"}}` | camelCase |
-| `snakeCase` | `{{snakeCase "Hello World"}}` | snake_case |
-| `kebabCase` | `{{kebabCase "Hello World"}}` | kebab-case |
-
-### Document Structure
-
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `br` | `{{br}}` | Line break |
-| `tab` | `{{tab}}` | Tab character |
-| `pageBreak` | `{{pageBreak}}` | Page break |
-| `sectionBreak` | `{{sectionBreak}}` | Section break |
-| `link` | `{{link "https://..." "Click"}}` | Hyperlink |
-
-### Miscellaneous
-
-| Function | Usage | Description |
-|----------|-------|-------------|
-| `uuid` | `{{uuid}}` | Generate UUID |
-| `pluralize` | `{{pluralize 5 "item" "items"}}` | Singular/plural |
+See [Sprig documentation](http://masterminds.github.io/sprig/) or [Sprout documentation](https://docs.atom.codes/sprout) for the complete function reference.
 
 ---
 
